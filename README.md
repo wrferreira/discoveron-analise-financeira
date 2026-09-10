@@ -1,7 +1,7 @@
 # DiscoverON — análise financeira da abertura da escola
 
 [![site](https://img.shields.io/badge/site-analise--financeira-2ea44f)](https://analise-financeira-production.up.railway.app)
-Deploy automático: todo push na `main` republica o site.
+Deploy a partir deste repo no Railway ([pendente: 1 passo](#deploy-automático-1-passo-pendente)).
 
 Modelagem financeira para a abertura de uma franquia DiscoverON (inglês + robótica):
 cenários pessimista / moderado / otimista, quadro mês a mês, simulador interativo,
@@ -24,24 +24,36 @@ para rodar local — não precisa de servidor nem de instalar nada.
 Projeto `discoveron-ponto-tiburcio-511` · ambiente `production` · serviço `analise-financeira`
 → https://analise-financeira-production.up.railway.app
 
-O serviço está conectado a este repositório: **todo push na `main` publica automaticamente.**
-Não é preciso rodar nada — edite o `site/index.html`, commite e faça o push.
+O serviço está conectado a este repositório e constrói pelo `Dockerfile` da raiz
+(nginx na porta 80, servindo o `site/index.html`). Se o Dockerfile sumir, o Railway
+cai no Caddy na porta 8080, o domínio aponta para a 80 e o site responde 502.
 
-```bash
-git add -A && git commit -m "..." && git push
-```
+### Deploy automático (1 passo pendente)
 
-O build usa o `Dockerfile` da raiz (nginx na porta 80). Se ele sumir, o Railway cai no
-Caddy na porta 8080, o domínio aponta para a 80 e o site responde 502.
+O repo está conectado, mas **o push ainda não dispara o deploy**: o GitHub App do Railway
+não tem acesso a este repositório, então nenhum evento de push chega lá
+(`GET /repos/wrferreira/discoveron-analise-financeira/hooks` retorna `[]`).
 
-Para acompanhar ou forçar um deploy:
+Para ligar, em https://github.com/settings/installations → **Railway** → *Configure* →
+adicionar `discoveron-analise-financeira` aos repositórios permitidos. Depois disso todo
+push na `main` republica sozinho.
+
+### Enquanto isso: deploy manual
 
 ```bash
 railway link --project c6100e3f-eb91-4570-a463-2652573e3947 --environment production
 railway service link analise-financeira
-railway deployment list      # status dos últimos deploys
-railway logs                 # logs de build e runtime
-railway redeploy             # republica o último deploy
+railway status              # confira projeto e serviço ANTES de subir
+railway redeploy            # republica o commit já conectado
+```
+
+> `railway up` num diretório sem link **cria um projeto novo** em vez de publicar no certo.
+
+### Acompanhar
+
+```bash
+railway deployment list     # status dos últimos deploys
+railway logs                # build e runtime
 ```
 
 ## Regenerar a planilha
