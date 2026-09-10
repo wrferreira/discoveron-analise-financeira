@@ -1,0 +1,1483 @@
+<meta charset="utf-8">
+<title>Diagnóstico DiscoverON</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,600;12..96,700&family=Archivo:wght@400;500;600;700&display=swap">
+<style>
+:root{
+  --paper:#f6f9f8; --surface:#ffffff; --ink:#1a2b33; --ink-2:#54686f; --ink-3:#8298a0;
+  --line:#dde6e6; --accent:#0e7490; --accent-soft:#e3f1f4;
+  --crit:#b3261e; --crit-bg:#fbeeed; --warn:#8a5a00; --warn-bg:#faf3e2;
+  --pos:#1b7f4b; --pos-bg:#e9f4ec;
+  --s1:#2a78d6; --s2:#eb6834; --s3:#1baf7a; --ghost:#9aabb2;
+  --chart-surface:#fcfcfb;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --paper:#0f181d; --surface:#16232a; --ink:#e3edf0; --ink-2:#9db0b7; --ink-3:#6d8189;
+    --line:#26363e; --accent:#4fc3dc; --accent-soft:#123742;
+    --crit:#f2938c; --crit-bg:#3a2220; --warn:#e5bd6b; --warn-bg:#352b16;
+    --pos:#7fce9f; --pos-bg:#1a3226;
+    --s1:#3987e5; --s2:#d95926; --s3:#199e70; --ghost:#5d727b;
+    --chart-surface:#1a1a19;
+  }
+}
+:root[data-theme="dark"]{
+  --paper:#0f181d; --surface:#16232a; --ink:#e3edf0; --ink-2:#9db0b7; --ink-3:#6d8189;
+  --line:#26363e; --accent:#4fc3dc; --accent-soft:#123742;
+  --crit:#f2938c; --crit-bg:#3a2220; --warn:#e5bd6b; --warn-bg:#352b16;
+  --pos:#7fce9f; --pos-bg:#1a3226;
+  --s1:#3987e5; --s2:#d95926; --s3:#199e70; --ghost:#5d727b;
+  --chart-surface:#1a1a19;
+}
+*{box-sizing:border-box}
+body{background:var(--paper);color:var(--ink);font:16px/1.6 "Archivo",system-ui,sans-serif;margin:0;padding:0 20px 80px}
+.wrap{max-width:880px;margin:0 auto}
+header{padding:56px 0 8px}
+.eyebrow{font-size:12px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:var(--accent)}
+h1{font-family:"Bricolage Grotesque","Archivo",sans-serif;font-weight:700;font-size:clamp(30px,5vw,42px);line-height:1.12;margin:10px 0 14px;text-wrap:balance}
+h2{font-family:"Bricolage Grotesque","Archivo",sans-serif;font-weight:600;font-size:24px;line-height:1.2;margin:0 0 6px;text-wrap:balance}
+h3{font-family:"Bricolage Grotesque","Archivo",sans-serif;font-weight:600;font-size:17px;margin:0 0 4px}
+p{margin:0 0 14px;max-width:70ch}
+.lead{font-size:18px;color:var(--ink-2);max-width:66ch}
+section{margin-top:56px}
+.sec-eyebrow{font-size:12px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-3);margin-bottom:6px}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:12px;margin:28px 0 6px}
+.stat{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:16px 18px}
+.stat .k{font-family:"Bricolage Grotesque","Archivo",sans-serif;font-size:26px;font-weight:700;font-variant-numeric:tabular-nums;letter-spacing:-.01em}
+.stat .k small{font-size:15px;font-weight:600;color:var(--ink-2)}
+.stat .l{font-size:13px;color:var(--ink-2);margin-top:4px;line-height:1.4}
+.stat.bad .k{color:var(--crit)} .stat.ok .k{color:var(--pos)} .stat.acc .k{color:var(--accent)}
+.cards{display:flex;flex-direction:column;gap:12px;margin-top:18px}
+.card{background:var(--surface);border:1px solid var(--line);border-left:4px solid var(--ink-3);border-radius:8px;padding:16px 18px}
+.card.crit{border-left-color:var(--crit)} .card.warn{border-left-color:var(--warn)}
+.card p{margin:6px 0 0;font-size:15px;color:var(--ink-2)}
+.card p:last-child{margin-bottom:0}
+.tag{display:inline-block;font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;border-radius:99px;padding:2px 10px;margin-bottom:8px}
+.tag.crit{background:var(--crit-bg);color:var(--crit)} .tag.warn{background:var(--warn-bg);color:var(--warn)}
+.tag.info{background:var(--accent-soft);color:var(--accent)}
+.fix{font-size:14px;margin-top:8px;color:var(--pos)}
+.fix::before{content:"→ ";font-weight:700}
+.tbl-wrap{overflow-x:auto;background:var(--surface);border:1px solid var(--line);border-radius:10px;margin:18px 0 8px}
+table{border-collapse:collapse;width:100%;min-width:560px;font-size:14.5px}
+th,td{padding:10px 14px;text-align:right;font-variant-numeric:tabular-nums;border-bottom:1px solid var(--line);white-space:nowrap}
+th{font-size:12px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-2)}
+th:first-child,td:first-child{text-align:left;white-space:normal;min-width:180px}
+tr:last-child td{border-bottom:none}
+td.neg{color:var(--crit)} td.posv{color:var(--pos)}
+.note{font-size:13.5px;color:var(--ink-3);max-width:74ch}
+.chart-block{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:18px 18px 8px;margin:20px 0 8px}
+.chart-title{font-weight:600;font-size:15px;margin-bottom:2px}
+.chart-sub{font-size:13px;color:var(--ink-2);margin-bottom:10px}
+.legend{display:flex;gap:16px;flex-wrap:wrap;font-size:13px;color:var(--ink-2);margin:4px 0 8px}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+.sw{width:14px;height:3px;border-radius:2px;display:inline-block}
+.chart{position:relative}
+.chart svg{display:block;width:100%;height:auto}
+.tip{position:absolute;pointer-events:none;background:var(--surface);border:1px solid var(--line);border-radius:8px;box-shadow:0 4px 14px rgba(0,0,0,.12);padding:8px 12px;font-size:12.5px;line-height:1.5;display:none;min-width:170px;z-index:5}
+.tip b{font-variant-numeric:tabular-nums}
+.premissas{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px;margin:16px 0}
+.prem{background:var(--accent-soft);border-radius:8px;padding:10px 14px;font-size:13.5px;color:var(--ink)}
+.prem b{color:var(--accent)}
+ol.next{padding-left:20px;max-width:72ch}
+ol.next li{margin-bottom:10px}
+ul.deliv{padding-left:20px;max-width:72ch}
+ul.deliv li{margin-bottom:6px}
+footer{margin-top:64px;padding-top:18px;border-top:1px solid var(--line);font-size:13px;color:var(--ink-3)}
+a{color:var(--accent)}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+@media (prefers-reduced-motion: reduce){*{transition:none!important;animation:none!important}}
+.tbl-mes{min-width:1450px}.tbl-mes td:first-child,.tbl-mes th:first-child{position:sticky;left:0;background:var(--surface);z-index:2;min-width:230px}.tbl-mes tr.sep td{background:var(--accent-soft);color:var(--accent);font-weight:600;font-size:12px;letter-spacing:.06em;text-transform:uppercase;text-align:left;position:sticky;left:0}.tbl-mes td,.tbl-mes th{padding:7px 10px;font-size:13.5px}
+.tabs{display:flex;gap:8px;margin:14px 0 4px;flex-wrap:wrap}.tabs .tab,.sim-presets .tab{font:inherit;font-size:14px;font-weight:600;padding:7px 18px;border-radius:99px;border:1px solid var(--line);background:var(--surface);color:var(--ink-2);cursor:pointer}.tabs .tab[aria-selected="true"],.sim-presets .tab[aria-selected="true"]{background:var(--accent);border-color:var(--accent);color:var(--paper)}.qpane[hidden]{display:none}.neg-t{color:var(--crit)}
+tr.sub td{color:var(--ink-2);font-size:13.5px;padding-top:4px;padding-bottom:4px}tr.sub td:first-child{padding-left:28px}
+.sim-presets{display:flex;align-items:center;gap:8px;margin:14px 0 10px;flex-wrap:wrap}.sim-months{display:flex;gap:6px;overflow-x:auto;padding:12px;background:var(--surface);border:1px solid var(--line);border-radius:10px}.sim-m{display:flex;flex-direction:column;align-items:center;gap:5px;font-size:10.5px;line-height:1.15;text-align:center;color:var(--ink-3);min-width:48px}.sim-m.obras span{color:var(--accent)}.sim-m input{width:46px;padding:6px 2px;text-align:center;font:inherit;font-size:14px;font-variant-numeric:tabular-nums;background:var(--paper);color:var(--ink);border:1px solid var(--line);border-radius:6px}.sim-m input:focus{outline:2px solid var(--accent);outline-offset:1px}.sim-controls{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:12px;margin:14px 0 4px}.sim-ctrl{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:10px 14px;font-size:13px;color:var(--ink-2)}.sim-ctrl b{color:var(--ink);font-variant-numeric:tabular-nums}.sim-ctrl input[type=range]{width:100%;accent-color:var(--accent);margin-top:6px}.verdict{border-radius:10px;padding:13px 18px;font-weight:600;font-size:16px;margin:16px 0 4px;font-family:"Bricolage Grotesque","Archivo",sans-serif}.verdict.ok{background:var(--pos-bg);color:var(--pos)}.verdict.warn{background:var(--warn-bg);color:var(--warn)}.verdict.bad{background:var(--crit-bg);color:var(--crit)}
+.sim-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px;padding:12px 14px 16px}.sim-g{display:flex;flex-direction:column;gap:4px;font-size:12px;color:var(--ink-2)}.sim-g input{padding:7px 10px;font:inherit;font-size:14px;font-variant-numeric:tabular-nums;background:var(--paper);color:var(--ink);border:1px solid var(--line);border-radius:6px;width:100%}.sim-g input:focus{outline:2px solid var(--accent);outline-offset:1px}details.simd{background:var(--surface);border:1px solid var(--line);border-radius:10px;margin:10px 0}details.simd summary{cursor:pointer;padding:11px 14px;font-weight:600;font-size:14px;color:var(--ink)}details.simd summary:hover{color:var(--accent)}#simTable td:first-child{min-width:250px}
+:root{--play-bg:#ecf6ee;--play-border:#bcdcc5;--play-flash:#cdeed6;--play-ink:#1c6b44}@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){--play-bg:#13221a;--play-border:#2c5140;--play-flash:#2b5a41;--play-ink:#8fd4a8}}:root[data-theme="dark"]{--play-bg:#13221a;--play-border:#2c5140;--play-flash:#2b5a41;--play-ink:#8fd4a8}#sim-section{background:var(--play-bg);border:2px solid var(--play-border);border-radius:16px;padding:26px 22px 22px;margin-top:56px}#sim-section .stat,#sim-section .sim-ctrl,#sim-section .chart-block,#sim-section .tbl-wrap,#sim-section details.simd,#sim-section .sim-months{background:var(--surface)}.play-head{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:10px}.play-badge{background:var(--play-ink);color:var(--play-bg);font-weight:700;font-size:13px;letter-spacing:.08em;padding:5px 14px;border-radius:99px}.play-sub{font-size:13px;color:var(--ink-2)}.play-fab{position:fixed;right:18px;bottom:18px;z-index:60;background:var(--play-ink);color:var(--play-bg);border:none;border-radius:99px;padding:12px 20px;font:600 14px "Archivo",sans-serif;cursor:pointer;box-shadow:0 4px 16px rgba(0,0,0,.25)}.play-fab:hover{filter:brightness(1.1)}.play-fab.hidden{display:none}.sum{font-weight:400;color:var(--ink-2);font-size:12.5px}.staff-wrap{padding:4px 14px 10px}table.staff{min-width:420px;font-size:13.5px}table.staff th{font-size:11px}table.staff td{padding:6px 8px}table.staff input[type=text]{width:100%;min-width:140px;padding:6px 8px;font:inherit;background:var(--paper);color:var(--ink);border:1px solid var(--line);border-radius:6px}table.staff input[type=number]{width:90px;padding:6px 8px;font:inherit;font-variant-numeric:tabular-nums;text-align:right;background:var(--paper);color:var(--ink);border:1px solid var(--line);border-radius:6px}table.staff select{padding:6px 8px;font:inherit;font-size:13px;background:var(--paper);color:var(--ink);border:1px solid var(--line);border-radius:6px}table.staff .rm{background:none;border:none;color:var(--crit);font-size:16px;cursor:pointer;padding:2px 6px}.ladder-wrap{padding:6px 14px 14px}#ladderTable{min-width:380px;font-size:13px}#ladderTable td,#ladderTable th{padding:6px 10px}#ladderTable tr.cur td{background:var(--play-flash);font-weight:600}td.chg{animation:simflash 1.1s ease-out}@keyframes simflash{0%{background:var(--play-flash)}100%{background:transparent}}
+
+
+
+
+
+
+
+
+
+/*BEPB*/:root{--be-bg:#d7f7e2;--be-ink:#0f7a3d;--be-line:#15b358}@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){--be-bg:#10401f;--be-ink:#63eb96;--be-line:#22c55e}}:root[data-theme="dark"]{--be-bg:#10401f;--be-ink:#63eb96;--be-line:#22c55e}td.bemonth{background:var(--be-bg);box-shadow:inset 0 0 0 2px var(--be-line);color:var(--be-ink);font-weight:700}td.pbmonth{background:var(--accent-soft);box-shadow:inset 0 0 0 2px var(--accent);color:var(--accent);font-weight:700}td.marco{font-size:10px;letter-spacing:.03em;white-space:nowrap}.lg{font-weight:700;padding:1px 7px;border-radius:99px;font-size:12px}.lg-be{background:var(--be-bg);color:var(--be-ink);box-shadow:inset 0 0 0 1.5px var(--be-line)}.lg-pb{background:var(--accent-soft);color:var(--accent)}/*/BEPB*/
+
+/*PGV4*/.saves{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:14px 16px;margin:16px 0 4px}.saves-row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}.saves-row input[type=text]{flex:1 1 260px;min-width:200px;padding:8px 12px;font:inherit;font-size:14px;background:var(--paper);color:var(--ink);border:1px solid var(--line);border-radius:8px}.saves-row select{padding:8px 10px;font:inherit;font-size:13.5px;background:var(--paper);color:var(--ink);border:1px solid var(--line);border-radius:8px}.saves-list{display:flex;flex-direction:column;gap:6px;margin-top:10px}.save-item{display:flex;gap:10px;align-items:center;flex-wrap:wrap;background:var(--paper);border:1px solid var(--line);border-radius:8px;padding:7px 10px;font-size:13.5px}.sv-name{font-weight:600;flex:1 1 160px}.sv-sum{color:var(--ink-2);font-size:12.5px;font-variant-numeric:tabular-nums}.sv-date{color:var(--ink-3);font-size:12px}.tg{font-size:11.5px;font-weight:700;padding:2px 9px;border-radius:99px;white-space:nowrap}.tg-teste{background:var(--warn-bg);color:var(--warn)}.tg-prov{background:var(--accent-soft);color:var(--accent)}.tg-real{background:var(--be-bg);color:var(--be-ink);box-shadow:inset 0 0 0 1.5px var(--be-line)}details.bk{margin-top:10px;background:var(--paper)}.bk-body{padding:10px 14px}.bk-body textarea{width:100%;font:12px ui-monospace,monospace;background:var(--paper);color:var(--ink-2);border:1px solid var(--line);border-radius:8px;padding:8px}.bk-btns{display:flex;gap:8px;margin-top:8px}table.staff select.stsel{min-width:118px}.cost-wrap{padding:4px 14px 8px}table.costs{min-width:420px;font-size:13.5px}table.costs th{font-size:11px}table.costs td{padding:5px 8px}table.costs input[type=number]{width:110px;padding:6px 8px;font:inherit;font-variant-numeric:tabular-nums;text-align:right;background:var(--paper);color:var(--ink);border:1px solid var(--line);border-radius:6px}table.costs input:disabled{opacity:.45}.mtog{font:inherit;font-size:12px;padding:5px 12px;border-radius:99px;border:1px solid var(--line);background:var(--paper);color:var(--ink-2);cursor:pointer;white-space:nowrap}.mtog.on{background:var(--be-bg);color:var(--be-ink);border-color:var(--be-line);font-weight:700}.monthly-wrap{padding:10px 14px 14px;border-top:1px dashed var(--line);margin-top:6px}.mw-head{font-weight:600;font-size:13.5px}#monthlyTable input.mcell{width:64px;padding:5px 4px;font:inherit;font-size:12.5px;font-variant-numeric:tabular-nums;text-align:right;background:var(--paper);color:var(--ink);border:1px solid var(--line);border-radius:5px}#monthlyTable td,#monthlyTable th{padding:4px 5px}.mfill{font:inherit;font-size:14px;padding:3px 9px;border-radius:6px;border:1px solid var(--line);background:var(--paper);color:var(--accent);cursor:pointer}/*/PGV4*/
+/*CAN*/#canaisTable{min-width:1500px}#canaisTable input.cnome{width:150px;padding:5px 7px;font:inherit;font-size:12.5px;background:var(--paper);color:var(--ink);border:1px solid var(--line);border-radius:5px}#canaisTable input.ccac{width:64px;padding:5px 4px;font:inherit;font-size:12.5px;text-align:right;font-variant-numeric:tabular-nums;background:var(--paper);color:var(--ink);border:1px solid var(--line);border-radius:5px}#canaisTable input.cq{width:52px;padding:5px 3px;font:inherit;font-size:12.5px;text-align:right;font-variant-numeric:tabular-nums;background:var(--paper);color:var(--ink);border:1px solid var(--line);border-radius:5px}#canaisTable td,#canaisTable th{padding:4px 5px}#origem{padding:7px 10px;font:inherit;font-size:13.5px;background:var(--paper);color:var(--ink);border:1px solid var(--line);border-radius:8px}/*/CAN*/
+/*NAV*/body{padding-top:0}.topnav{position:sticky;top:0;z-index:50;background:color-mix(in srgb,var(--paper) 88%,transparent);backdrop-filter:saturate(180%) blur(12px);border-bottom:1px solid var(--line);margin:0 -20px 0}.nav-inner{max-width:880px;margin:0 auto;padding:0 20px;display:flex;align-items:center;gap:4px;overflow-x:auto;scrollbar-width:none}.nav-inner::-webkit-scrollbar{display:none}.nav-brand{font-family:'Bricolage Grotesque','Archivo',sans-serif;font-weight:700;font-size:14px;color:var(--ink);padding:13px 14px 13px 0;white-space:nowrap;border-right:1px solid var(--line);margin-right:8px}.nav-inner a{font-size:13.5px;font-weight:600;color:var(--ink-2);text-decoration:none;padding:13px 11px;white-space:nowrap;border-bottom:2px solid transparent}.nav-inner a:hover{color:var(--ink)}.nav-inner a.on{color:var(--accent);border-bottom-color:var(--accent)}section,details.apx{scroll-margin-top:64px}header{padding-top:38px}details.apx{margin-top:56px;border:1px solid var(--line);border-radius:12px;background:var(--surface)}details.apx>summary{cursor:pointer;padding:16px 20px;font-family:'Bricolage Grotesque','Archivo',sans-serif;font-weight:600;font-size:17px;color:var(--ink);list-style:none}details.apx>summary::-webkit-details-marker{display:none}details.apx>summary::before{content:'▸ ';color:var(--ink-3)}details.apx[open]>summary::before{content:'▾ '}details.apx>summary .sec-eyebrow{display:block;margin-bottom:3px}.apx-hint{font-weight:400;font-size:13px;color:var(--ink-3)}details.apx section{margin-top:28px;padding:0 20px}details.apx section:last-of-type{padding-bottom:20px}@media(max-width:640px){.nav-brand{display:none}.nav-inner a{padding:12px 9px;font-size:13px}}/*/NAV*/
+/*CANM*/.sim-m input:disabled{opacity:.45;cursor:not-allowed}#avisoModo{color:var(--accent);font-weight:600}/*/CANM*/
+/*CANV*/#canaisTable input.cq.verba{background:var(--warn-bg);color:var(--warn);font-weight:600;width:62px}#canaisTable select.cmodo{padding:4px 6px;font:inherit;font-size:11.5px;background:var(--paper);color:var(--ink);border:1px solid var(--line);border-radius:5px}.badge-v{font-size:10px;font-weight:700;background:var(--warn-bg);color:var(--warn);padding:1px 6px;border-radius:99px}#canalResumo{min-width:640px;font-size:13px}#canalResumo td,#canalResumo th{padding:6px 10px}/*/CANV*/
+/*IMP*/.imp-bar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:16px 0 10px}.imp-sum{font-size:13px;color:var(--ink-2)}.imp-text{width:100%;font:12px ui-monospace,monospace;background:var(--paper);color:var(--ink-2);border:1px solid var(--line);border-radius:8px;padding:8px;margin-bottom:10px}#impTable{min-width:900px;font-size:13.5px}#impTable td,#impTable th{padding:6px 8px}#impTable input[type=text]{width:100%;min-width:180px;padding:6px 8px;font:inherit;background:var(--paper);color:var(--ink);border:1px solid var(--line);border-radius:6px}#impTable input[type=number]{width:92px;padding:6px 8px;font:inherit;text-align:right;font-variant-numeric:tabular-nums;background:var(--paper);color:var(--ink);border:1px solid var(--line);border-radius:6px}#impTable select{padding:6px 7px;font:inherit;font-size:12.5px;background:var(--paper);color:var(--ink);border:1px solid var(--line);border-radius:6px}#impTable td.i-calc{font-variant-numeric:tabular-nums;color:var(--ink-2)}.bars{display:flex;flex-direction:column;gap:7px;padding:4px 0 10px}.bar-row{display:flex;align-items:center;gap:10px;font-size:13px}.bar-lbl{flex:0 0 165px;color:var(--ink-2)}.bar-track{flex:1;height:16px;background:var(--paper);border-radius:4px;overflow:hidden}.bar-fill{display:block;height:100%;background:var(--accent);border-radius:4px}.bar-val{flex:0 0 150px;text-align:right;font-variant-numeric:tabular-nums;font-weight:600}.bar-val small{font-weight:400;color:var(--ink-3)}.cols{display:flex;align-items:flex-end;gap:5px;height:150px;padding:8px 0 0;overflow-x:auto}.col-item{flex:1 0 34px;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%}.col-bar{width:70%;background:var(--accent);border-radius:3px 3px 0 0;min-height:0}.col-lbl{font-size:9.5px;color:var(--ink-3);margin-top:5px;white-space:nowrap;transform:rotate(-45deg);transform-origin:center}#impCross{min-width:620px;font-size:13px}#impCross td,#impCross th{padding:6px 10px}/*/IMP*/
+</style>
+
+<nav class="topnav" aria-label="Seções">
+  <div class="nav-inner">
+    <span class="nav-brand">DiscoverON</span>
+    <a href="#cenarios" data-s="cenarios">Cenários</a>
+    <a href="#quadro" data-s="quadro">Quadro mês a mês</a>
+    <a href="#custos" data-s="custos">Custos</a>
+    <a href="#sim-section" data-s="sim-section">🎛️ Playground</a>
+    <a href="#implantacao" data-s="implantacao">💸 Implantação</a>
+    <a href="#proximos" data-s="proximos">Próximos passos</a>
+    <a href="#apendices" data-s="apendices">Apêndices</a>
+  </div>
+</nav>
+<div class="wrap">
+<header>
+  <div class="eyebrow">DiscoverON · Projeção financeira · rev. 10 — 30 ago 2026</div>
+  <h1>Validação do negócio em três cenários</h1>
+  <p class="lead">A pergunta é uma só: <strong>o negócio para em pé?</strong> Três cenários — pessimista, moderado e otimista — com as regras dos sócios e o modelo já completo: Simples progressivo, sazonalidade de férias, 13º e férias saindo do caixa, VT e limpeza na folha, professores dimensionados pela grade e o investimento com os itens em aberto estimados mais reserva. Out e nov são meses de obras (a escola já vende, sem custos operacionais); a abertura é em dezembro. O diagnóstico da planilha original está no apêndice.</p>
+  <div class="stats">
+    <div class="stat bad"><div class="k">R$ 198,7 mil</div><div class="l">investimento com os 24 itens em aberto estimados + reserva de 15% (era R$ 133,6 mil só com o que já estava orçado)</div></div>
+    <div class="stat bad"><div class="k">nenhum</div><div class="l">cenário se paga em 16 meses com mensalidade de R$ 280 — nem o otimista</div></div>
+    <div class="stat acc"><div class="k">R$ 350</div><div class="l">mensalidade que faz o otimista pagar no M15; o moderado precisa de R$ 400 + aluguel renegociado</div></div>
+    <div class="stat acc"><div class="k">202 <small>alunos</small></div><div class="l">break-even com todos os custos reais no modelo (era 182 antes das correções)</div></div>
+  </div>
+</header>
+
+<section id="cenarios">
+  <div class="sec-eyebrow">1 · Cenários oficiais — Pessimista · Moderado · Otimista</div>
+  <h2>Pessimista, moderado e otimista — o que acontece em cada um</h2>
+  <p>Regras aplicadas (todas ajustáveis na aba <em>Premissas</em> da planilha):</p>
+  <div class="premissas">
+    <div class="prem"><b>Preços</b> · matrícula R$ 200 + curso R$ 280/mês</div>
+    <div class="prem"><b>Material</b> · venda R$ 900 em 12x no cartão, ~R$ 810 antecipados à vista; custo R$ 375 pago em 12x</div>
+    <div class="prem"><b>Obras (out + nov)</b> · sem funcionários, aluguel ou contas — matrículas em obras: out 2/4/5 e nov 20/35/40 (R$ 1.010/aluno). Abertura e 1º aluguel em DEZ (M1); mensalidades começam em dez</div>
+    <div class="prem"><b>Churn</b> · 10% da base a.m. (simulação com 8% no 2º gráfico)</div>
+    <div class="prem"><b>Inadimplência</b> · 10% da mensalidade</div>
+    <div class="prem"><b>Equipe</b> · vendedor CLT 2.100 + R$ 40/matrícula · recepção 2.000 · estagiário 1.200 · adm 6.000 · auxiliar de limpeza 1.500 · encargos mensais 10% + VT R$ 200/CLT → folha de R$ 13.360 + 13º e férias no mês em que saem</div>
+    <div class="prem"><b>Professores</b> · dimensionados pela grade: 4 salas de inglês (8 alunos/turma, 2h/sem) + 1 de informática (10 alunos, 1h/sem), horários 9h–20h (exceto 12h–13h), 5 dias/sem; CLT R$ 1.200 (+encargos = R$ 1.500) contratado para 20 h-aula/sem, entregando ~14 com aproveitamento de 70% → 2 na abertura, 6 com 200 alunos (~R$ 37,50/aluno/mês)</div>
+    <div class="prem"><b>Impostos</b> · Simples Nacional progressivo (Anexo III): alíquota efetiva de ~11,7% no M16, não os 6% da 1ª faixa</div>
+  </div>
+  <div class="cards" style="margin:6px 0 18px">
+    <div class="card warn"><span class="tag warn">Premissa mais sensível do modelo</span>
+      <h3>Professores escalam com os alunos — e o aproveitamento da grade decide o payback</h3>
+      <p>Cada aluno consome 2h/semana de inglês (turmas de até 8, em 4 salas) e 1h/semana de informática (turmas de até 10, em 1 sala) — 0,35 h-aula/semana por aluno, na janela das 9h às 20h (exceto 12h–13h), 5 dias/semana. Um professor CLT de R$ 1.200 (+25% de encargos = R$ 1.500/mês) é contratado para 20 h-aula/semana, mas a demanda concentra nos horários de pico: com o <strong>coeficiente de aproveitamento de 70%</strong>, ele entrega ~14 h-aula efetivas e o custo sobe para <strong>~R$ 37,50 por aluno/mês</strong> (2 professores na abertura → 6 com ~200 alunos). Encher os horários fora do pico (turmas de manhã, desconto por horário) é uma das poucas alavancas que reduzem custo sem cortar qualidade. O teto físico das salas fica em ~350 alunos com o coeficiente — acima do teto de ~240 imposto pelo churn, ou seja, o espaço não é o gargalo. A linha <em>Ocupação das salas</em> na planilha avisa quando a grade não couber mais nas 4+1 salas.</p>
+    </div>
+  </div>
+
+  <div class="chart-block">
+    <div class="chart-title">Caixa acumulado operacional — três cenários com pré-venda</div>
+    <div class="chart-sub">Sem contar o investimento inicial de R$ 198.713 (obra + estimativas + reserva + caução). Passe o mouse para ver os valores.</div>
+    <div class="legend" role="list">
+      <span><i class="sw" style="background:var(--s1)"></i>Pessimista (out 2 · nov 20 · dez 10 · jan 20 · fev 25)</span>
+      <span><i class="sw" style="background:var(--s2)"></i>Moderado (out 4 · nov 35 · dez 13 · jan 30 · fev 30)</span>
+      <span><i class="sw" style="background:var(--s3)"></i>Otimista (out 5 · nov 40 · dez 15 · jan 35 · fev 30)</span>
+    </div>
+    <div class="chart" id="chart1"></div>
+  </div>
+
+  <div class="tbl-wrap"><table>
+    <tr><th>Indicador (churn 10%)</th><th>Pessimista</th><th>Moderado</th><th>Otimista</th></tr>
+    <tr><td>Matrículas em obras (out + nov) e caixa gerado</td><td>22 · +R$ 20.768</td><td>39 · +R$ 36.816</td><td>45 · +R$ 42.480</td></tr>
+    <tr><td>Alunos no M16 (teto por churn)</td><td>145</td><td>205</td><td>249</td></tr>
+    <tr><td>Professores necessários (abertura → M16)</td><td>2 → 5</td><td>2 → 6</td><td>2 → 7</td></tr>
+    <tr><td>Alunos no M16 (com sazonalidade de férias)</td><td>135</td><td>192</td><td>234</td></tr>
+    <tr><td>Alíquota efetiva do Simples no M16</td><td>10,5%</td><td>11,7%</td><td>12,3%</td></tr>
+    <tr><td>Capital de giro necessário</td><td class="neg">R$ 170.085</td><td class="neg">R$ 20.243</td><td class="neg">R$ 948</td></tr>
+    <tr><td>Payback incl. investimento</td><td class="neg">não atinge</td><td class="neg">não em 16m</td><td class="neg">não em 16m</td></tr>
+    <tr><td>Resultado no M16</td><td class="neg">−R$ 6.672</td><td class="posv">+R$ 4.119</td><td class="posv">+R$ 10.588</td></tr>
+    <tr><td>Caixa no M16 incl. investimento</td><td class="neg">−R$ 368.798</td><td class="neg">−R$ 191.454</td><td class="neg">−R$ 93.259</td></tr>
+  </table></div>
+
+  <div class="tbl-wrap"><table>
+    <tr><th>Simulação de churn — Cenário Moderado</th><th>Churn 10% (regra)</th><th>Churn 8%</th><th>Impacto</th></tr>
+    <tr><td>Alunos no M16</td><td>192</td><td>237</td><td class="posv">+45</td></tr>
+    <tr><td>Caixa acumulado no M16</td><td>+R$ 7.259</td><td>+R$ 45.354</td><td class="posv">+R$ 38.095</td></tr>
+    <tr><td>Payback incl. investimento</td><td class="neg">não em 16m</td><td class="neg">não em 16m</td><td>não resolve sozinho</td></tr>
+  </table></div>
+
+  <div class="chart-block">
+    <div class="chart-title">Simulação: churn de 8% vs a regra de 10% — Cenário Moderado</div>
+    <div class="chart-sub">Cada ponto de churn a menos sobe o teto da base em ~29 alunos e vale ~R$ 37 mil no acumulado — no modelo completo, churn 8% leva o caixa final do moderado de +R$ 7,3 mil para +R$ 45,4 mil no operacional — mas ainda não paga o investimento em 16 meses.</div>
+    <div class="legend">
+      <span><i class="sw" style="background:var(--s2)"></i>Churn 10% (regra atual)</span>
+      <span><i class="sw" style="background:var(--s1)"></i>Churn 8% (simulação)</span>
+    </div>
+    <div class="chart" id="chart2"></div>
+  </div>
+
+
+  <h3 style="margin-top:26px">O que muda na leitura do negócio</h3>
+  <p><strong>Com o modelo completo, R$ 280 não fecha em nenhum cenário.</strong> As correções somadas — imposto progressivo (~12% em vez de 6%), sazonalidade de férias (jan e jul esvaziam a escola), 13º e férias saindo do caixa, VT e auxiliar de limpeza na folha, e o investimento real de <strong>R$ 198,7 mil</strong> com os itens em aberto estimados e 15% de reserva — derrubam o payback de todos os três. O moderado termina o M16 a −R$ 191,5 mil e precisa de R$ 20,2 mil de capital de giro; até o otimista fica a −R$ 93,3 mil.</p>
+  <p><strong>Mas há caminhos que fecham — todos passam por preço.</strong> Testei as combinações no modelo completo: <strong>otimista com mensalidade de R$ 350 paga no M15</strong>; <strong>moderado com R$ 400 e aluguel renegociado para R$ 10 mil paga no M15</strong>; <strong>moderado com R$ 380 e churn de 7% paga no M15</strong>; e otimista com R$ 380 + aluguel de R$ 10 mil paga já no <strong>M13</strong>. Nenhuma alavanca isolada resolve: é preço combinado com volume, retenção ou aluguel. A pergunta que decide o negócio deixou de ser "quanto vou faturar" e virou <strong>"a região aceita mensalidade de R$ 350 a R$ 400?"</strong> — vale testar isso na pré-venda de outubro, antes de assinar o contrato do imóvel.</p>
+  <p class="note">Duas ressalvas sobre estes números: as estimativas dos 24 itens de CAPEX são <strong>referências minhas para dar ordem de grandeza</strong>, não orçamentos — troque cada uma pela cotação real na planilha. E os fatores de sazonalidade (jan 1,5× e jul 1,4× de churn) são típicos de escola de idiomas, não medidos na sua praça; ambos são editáveis nas Premissas.</p>
+</section>
+
+<section id="quadro">
+  <div class="sec-eyebrow">2 · Planilha do plano</div>
+  <h2 style="margin-bottom:10px">Quadro mês a mês — receitas, despesas e caixa</h2>
+  <p class="note" style="margin-bottom:4px">Alterne entre os cenários para comparar como cada um afeta a saúde financeira da escola. Out e nov são meses de obras: a escola vende matrículas mas não tem funcionários, aluguel nem contas (só o imposto) — o 1º aluguel e a folha entram em dezembro, o M1. As parcelas do 12x do material das turmas de obras começam no M1; a comissão sobre out/nov não está contada. <strong>Marcos:</strong> <span class="lg lg-be">◆ BREAK-EVEN</span> = mês em que a escola passa a se pagar (1º resultado positivo e base cruzando os 202 alunos) · <span class="lg lg-pb">★ PAYBACK</span> = mês em que o investimento de R$ 198.713 é devolvido. Nos demais valores, verde claro = positivo e vermelho = negativo.</p>
+  <div class="tabs" role="tablist" aria-label="Cenários">
+    <button class="tab" role="tab" data-t="pess" aria-selected="false">Pessimista</button>
+    <button class="tab" role="tab" data-t="mod" aria-selected="true">Moderado</button>
+    <button class="tab" role="tab" data-t="otim" aria-selected="false">Otimista</button>
+  </div>
+  <div id="quadro-pess" class="qpane" hidden role="tabpanel" aria-label="Pessimista">
+  <div class="tbl-wrap"><table class="tbl-mes">
+    <tr><th>Pessimista (R$)</th><th>Out<br>obras</th><th>Nov<br>obras</th><th>Dez<br>M1</th><th>Jan<br>M2</th><th>Fev<br>M3</th><th>Mar<br>M4</th><th>Abr<br>M5</th><th>Mai<br>M6</th><th>Jun<br>M7</th><th>Jul<br>M8</th><th>Ago<br>M9</th><th>Set<br>M10</th><th>Out<br>M11</th><th>Nov<br>M12</th><th>Dez<br>M13</th><th>Jan<br>M14</th><th>Fev<br>M15</th><th>Mar<br>M16</th></tr>
+    <tr><td>Matrículas no período</td><td>2</td><td>20</td><td>10</td><td>20</td><td>25</td><td>15</td><td>15</td><td>15</td><td>15</td><td>20</td><td>20</td><td>15</td><td>15</td><td>20</td><td>20</td><td>15</td><td>20</td><td>15</td></tr>
+    <tr><td style="font-weight:600">Total de alunos (break-even: 202)</td><td>2</td><td>22</td><td>29</td><td>45</td><td>65</td><td>74</td><td>81</td><td>88</td><td>94</td><td>100</td><td>110</td><td>114</td><td>118</td><td>126</td><td>131</td><td>126</td><td>134</td><td>135</td></tr>
+    <tr><td>Professores necessários</td><td>0</td><td>0</td><td>2</td><td>2</td><td>3</td><td>3</td><td>3</td><td>3</td><td>3</td><td>3</td><td>3</td><td>4</td><td>4</td><td>4</td><td>4</td><td>4</td><td>4</td><td>4</td></tr>
+    <tr class="sep"><td colspan="19">Receitas (caixa)</td></tr>
+    <tr><td>Matrícula (R$ 200/novo)</td><td>400</td><td>4.000</td><td>2.000</td><td>4.000</td><td>5.000</td><td>3.000</td><td>3.000</td><td>3.000</td><td>3.000</td><td>4.000</td><td>4.000</td><td>3.000</td><td>3.000</td><td>4.000</td><td>4.000</td><td>3.000</td><td>4.000</td><td>3.000</td></tr>
+    <tr><td>Mensalidade recebida (R$ 280, − 10% inadimpl.)</td><td>0</td><td>0</td><td>5.494</td><td>7.354</td><td>11.291</td><td>16.462</td><td>18.596</td><td>20.516</td><td>22.245</td><td>23.578</td><td>25.317</td><td>27.825</td><td>28.823</td><td>29.720</td><td>31.788</td><td>33.014</td><td>31.842</td><td>33.698</td></tr>
+    <tr><td>Material antecipado (R$ 810/novo)</td><td>1.620</td><td>16.200</td><td>8.100</td><td>16.200</td><td>20.250</td><td>12.150</td><td>12.150</td><td>12.150</td><td>12.150</td><td>16.200</td><td>16.200</td><td>12.150</td><td>12.150</td><td>16.200</td><td>16.200</td><td>12.150</td><td>16.200</td><td>12.150</td></tr>
+    <tr><td style="font-weight:600">Receita recebida</td><td>2.020</td><td>20.200</td><td>15.594</td><td>27.554</td><td>36.541</td><td>31.612</td><td>33.746</td><td>35.666</td><td>37.395</td><td>43.778</td><td>45.517</td><td>42.975</td><td>43.973</td><td>49.920</td><td>51.988</td><td>48.164</td><td>52.042</td><td>48.848</td></tr>
+    <tr class="sep"><td colspan="19">Despesas</td></tr>
+    <tr><td>Impostos (Simples progressivo)</td><td>132</td><td>1.320</td><td>1.026</td><td>2.062</td><td>3.085</td><td>2.784</td><td>3.056</td><td>3.300</td><td>3.520</td><td>4.237</td><td>4.530</td><td>4.360</td><td>4.674</td><td>5.444</td><td>5.828</td><td>5.481</td><td>5.969</td><td>5.666</td></tr>
+    <tr><td>Material — parcelas 12x (R$ 31,25/novo/mês)</td><td>0</td><td>0</td><td>1.000</td><td>1.625</td><td>2.406</td><td>2.875</td><td>3.344</td><td>3.812</td><td>4.281</td><td>4.906</td><td>5.531</td><td>6.000</td><td>6.469</td><td>7.094</td><td>6.719</td><td>6.562</td><td>6.406</td><td>6.406</td></tr>
+    <tr><td>Comissão vendedor (R$ 40 + encargos)</td><td>0</td><td>0</td><td>440</td><td>880</td><td>1.100</td><td>660</td><td>660</td><td>660</td><td>660</td><td>880</td><td>880</td><td>660</td><td>660</td><td>880</td><td>880</td><td>660</td><td>880</td><td>660</td></tr>
+    <tr><td>Folha + encargos mensais</td><td>0</td><td>0</td><td>13.360</td><td>13.360</td><td>13.360</td><td>13.360</td><td>13.360</td><td>13.360</td><td>13.360</td><td>13.360</td><td>13.360</td><td>13.360</td><td>13.360</td><td>13.360</td><td>13.360</td><td>13.360</td><td>13.360</td><td>13.360</td></tr>
+    <tr><td>Vale-transporte / benefícios</td><td>0</td><td>0</td><td>600</td><td>600</td><td>600</td><td>600</td><td>600</td><td>600</td><td>600</td><td>600</td><td>600</td><td>600</td><td>600</td><td>600</td><td>600</td><td>600</td><td>600</td><td>600</td></tr>
+    <tr><td>13º e férias (desembolso)</td><td>0</td><td>0</td><td>467</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>13.067</td><td>0</td><td>0</td><td>0</td></tr>
+    <tr><td>Professores (salário + encargos, sem comissão)</td><td>0</td><td>0</td><td>2.640</td><td>2.640</td><td>3.960</td><td>3.960</td><td>3.960</td><td>3.960</td><td>3.960</td><td>3.960</td><td>3.960</td><td>5.280</td><td>5.280</td><td>5.280</td><td>5.280</td><td>5.280</td><td>5.280</td><td>5.280</td></tr>
+    <tr><td>Aluguel do espaço</td><td>0</td><td>0</td><td>12.000</td><td>12.000</td><td>12.000</td><td>12.000</td><td>12.000</td><td>12.000</td><td>12.000</td><td>12.000</td><td>12.000</td><td>12.000</td><td>12.000</td><td>12.000</td><td>12.000</td><td>12.000</td><td>12.000</td><td>12.000</td></tr>
+    <tr><td>Demais custos fixos (composição abaixo)</td><td>0</td><td>0</td><td>11.547</td><td>11.547</td><td>11.547</td><td>11.547</td><td>11.547</td><td>11.547</td><td>11.547</td><td>11.547</td><td>11.547</td><td>11.547</td><td>11.547</td><td>11.547</td><td>11.547</td><td>11.547</td><td>11.547</td><td>11.547</td></tr>
+    <tr><td style="font-weight:600">Despesas totais</td><td>132</td><td>1.320</td><td>43.080</td><td>44.714</td><td>48.058</td><td>47.786</td><td>48.527</td><td>49.240</td><td>49.928</td><td>51.490</td><td>52.408</td><td>53.807</td><td>54.590</td><td>56.204</td><td>69.280</td><td>55.490</td><td>56.043</td><td>55.519</td></tr>
+    <tr class="sep"><td colspan="19">Caixa</td></tr>
+    <tr><td style="font-weight:600">Resultado do período</td><td class="posv">1.888</td><td class="posv">18.880</td><td class="neg">−27.486</td><td class="neg">−17.160</td><td class="neg">−11.517</td><td class="neg">−16.174</td><td class="neg">−14.781</td><td class="neg">−13.574</td><td class="neg">−12.534</td><td class="neg">−7.713</td><td class="neg">−6.892</td><td class="neg">−10.832</td><td class="neg">−10.617</td><td class="neg">−6.284</td><td class="neg">−17.292</td><td class="neg">−7.327</td><td class="neg">−4.001</td><td class="neg">−6.672</td></tr>
+    <tr><td style="font-weight:600">Caixa acumulado (operacional)</td><td class="posv">1.888</td><td class="posv">20.768</td><td class="neg">−6.718</td><td class="neg">−23.878</td><td class="neg">−35.395</td><td class="neg">−51.569</td><td class="neg">−66.350</td><td class="neg">−79.923</td><td class="neg">−92.457</td><td class="neg">−100.170</td><td class="neg">−107.061</td><td class="neg">−117.893</td><td class="neg">−128.510</td><td class="neg">−134.794</td><td class="neg">−152.086</td><td class="neg">−159.413</td><td class="neg">−163.414</td><td class="neg">−170.085</td></tr>
+    <tr><td>Caixa acumulado incl. investimento (−R$ 198.713)</td><td class="neg">−196.825</td><td class="neg">−177.945</td><td class="neg">−205.431</td><td class="neg">−222.591</td><td class="neg">−234.108</td><td class="neg">−250.282</td><td class="neg">−265.063</td><td class="neg">−278.636</td><td class="neg">−291.170</td><td class="neg">−298.883</td><td class="neg">−305.774</td><td class="neg">−316.606</td><td class="neg">−327.223</td><td class="neg">−333.507</td><td class="neg">−350.799</td><td class="neg">−358.126</td><td class="neg">−362.127</td><td class="neg">−368.798</td></tr>
+    <tr><td style="font-weight:600">Marcos</td><td class="marco"></td><td class="marco"></td><td class="marco"></td><td class="marco"></td><td class="marco"></td><td class="marco"></td><td class="marco"></td><td class="marco"></td><td class="marco"></td><td class="marco"></td><td class="marco"></td><td class="marco"></td><td class="marco"></td><td class="marco"></td><td class="marco"></td><td class="marco"></td><td class="marco"></td><td class="marco"></td></tr>
+  </table></div>
+<p class="note" style="margin-top:8px"><strong>Pessimista:</strong> obras (out+nov) rendem <strong>+R$ 20.768</strong> · <strong class="neg-t">não alcança o break-even de 202 alunos</strong> · caixa operacional chega a <strong class="neg-t">−R$ 170.085</strong> no M16 — precisa desse capital de giro além do investimento · <strong class="neg-t">não paga o investimento em 16 meses</strong> · caixa final incl. investimento: <strong>−R$ 368.798</strong>.</p>
+  </div>
+  <div id="quadro-mod" class="qpane" role="tabpanel" aria-label="Moderado">
+  <div class="tbl-wrap"><table class="tbl-mes">
+    <tr><th>Moderado (R$)</th><th>Out<br>obras</th><th>Nov<br>obras</th><th>Dez<br>M1</th><th>Jan<br>M2</th><th>Fev<br>M3</th><th>Mar<br>M4</th><th>Abr<br>M5</th><th>Mai<br>M6</th><th>Jun<br>M7</th><th>Jul<br>M8</th><th>Ago<br>M9</th><th>Set<br>M10</th><th>Out<br>M11</th><th>Nov<br>M12</th><th>Dez<br>M13</th><th>Jan<br>M14</th><th>Fev<br>M15</th><th>Mar<br>M16</th></tr>
+    <tr><td>Matrículas no período</td><td>4</td><td>35</td><td>13</td><td>30</td><td>30</td><td>20</td><td>20</td><td>20</td><td>20</td><td>30</td><td>30</td><td>20</td><td>20</td><td>30</td><td>30</td><td>20</td><td>30</td><td>20</td></tr>
+    <tr><td style="font-weight:600">Total de alunos (break-even: 202)</td><td>4</td><td>39</td><td>47</td><td>70</td><td>93</td><td>104</td><td>113</td><td>122</td><td>129</td><td>141</td><td>156</td><td>161</td><td>165</td><td>178</td><td>187</td><td>179</td><td>191</td><td>192</td></tr>
+    <tr><td>Professores necessários</td><td>0</td><td>0</td><td>2</td><td>3</td><td>3</td><td>3</td><td>4</td><td>4</td><td>4</td><td>5</td><td>5</td><td>5</td><td>5</td><td>6</td><td>6</td><td>6</td><td>6</td><td>6</td></tr>
+    <tr class="sep"><td colspan="19">Receitas (caixa)</td></tr>
+    <tr><td>Matrícula (R$ 200/novo)</td><td>800</td><td>7.000</td><td>2.600</td><td>6.000</td><td>6.000</td><td>4.000</td><td>4.000</td><td>4.000</td><td>4.000</td><td>6.000</td><td>6.000</td><td>4.000</td><td>4.000</td><td>6.000</td><td>6.000</td><td>4.000</td><td>6.000</td><td>4.000</td></tr>
+    <tr><td>Mensalidade recebida (R$ 280, − 10% inadimpl.)</td><td>0</td><td>0</td><td>9.727</td><td>11.836</td><td>17.621</td><td>23.418</td><td>26.117</td><td>28.545</td><td>30.730</td><td>32.390</td><td>35.416</td><td>39.434</td><td>40.531</td><td>41.518</td><td>44.926</td><td>47.095</td><td>45.070</td><td>48.123</td></tr>
+    <tr><td>Material antecipado (R$ 810/novo)</td><td>3.240</td><td>28.350</td><td>10.530</td><td>24.300</td><td>24.300</td><td>16.200</td><td>16.200</td><td>16.200</td><td>16.200</td><td>24.300</td><td>24.300</td><td>16.200</td><td>16.200</td><td>24.300</td><td>24.300</td><td>16.200</td><td>24.300</td><td>16.200</td></tr>
+    <tr><td style="font-weight:600">Receita recebida</td><td>4.040</td><td>35.350</td><td>22.857</td><td>42.136</td><td>47.921</td><td>43.618</td><td>46.317</td><td>48.745</td><td>50.930</td><td>62.690</td><td>65.716</td><td>59.634</td><td>60.731</td><td>71.818</td><td>75.226</td><td>67.295</td><td>75.370</td><td>68.323</td></tr>
+    <tr class="sep"><td colspan="19">Despesas</td></tr>
+    <tr><td>Impostos (Simples progressivo)</td><td>264</td><td>2.912</td><td>1.948</td><td>3.908</td><td>4.780</td><td>4.511</td><td>4.912</td><td>5.275</td><td>5.602</td><td>7.033</td><td>7.504</td><td>6.893</td><td>7.217</td><td>8.648</td><td>9.294</td><td>8.461</td><td>9.603</td><td>8.835</td></tr>
+    <tr><td>Material — parcelas 12x (R$ 31,25/novo/mês)</td><td>0</td><td>0</td><td>1.625</td><td>2.562</td><td>3.500</td><td>4.125</td><td>4.750</td><td>5.375</td><td>6.000</td><td>6.938</td><td>7.875</td><td>8.500</td><td>9.125</td><td>10.062</td><td>9.375</td><td>9.062</td><td>9.062</td><td>9.062</td></tr>
+    <tr><td>Comissão vendedor (R$ 40 + encargos)</td><td>0</td><td>0</td><td>572</td><td>1.320</td><td>1.320</td><td>880</td><td>880</td><td>880</td><td>880</td><td>1.320</td><td>1.320</td><td>880</td><td>880</td><td>1.320</td><td>1.320</td><td>880</td><td>1.320</td><td>880</td></tr>
+    <tr><td>Folha + encargos mensais</td><td>0</td><td>0</td><td>13.360</td><td>13.360</td><td>13.360</td><td>13.360</td><td>13.360</td><td>13.360</td><td>13.360</td><td>13.360</td><td>13.360</td><td>13.360</td><td>13.360</td><td>13.360</td><td>13.360</td><td>13.360</td><td>13.360</td><td>13.360</td></tr>
+    <tr><td>Vale-transporte / benefícios</td><td>0</td><td>0</td><td>600</td><td>600</td><td>600</td><td>600</td><td>600</td><td>600</td><td>600</td><td>600</td><td>600</td><td>600</td><td>600</td><td>600</td><td>600</td><td>600</td><td>600</td><td>600</td></tr>
+    <tr><td>13º e férias (desembolso)</td><td>0</td><td>0</td><td>467</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>13.067</td><td>0</td><td>0</td><td>0</td></tr>
+    <tr><td>Professores (salário + encargos, sem comissão)</td><td>0</td><td>0</td><td>2.640</td><td>3.960</td><td>3.960</td><td>3.960</td><td>5.280</td><td>5.280</td><td>5.280</td><td>6.600</td><td>6.600</td><td>6.600</td><td>6.600</td><td>7.920</td><td>7.920</td><td>7.920</td><td>7.920</td><td>7.920</td></tr>
+    <tr><td>Aluguel do espaço</td><td>0</td><td>0</td><td>12.000</td><td>12.000</td><td>12.000</td><td>12.000</td><td>12.000</td><td>12.000</td><td>12.000</td><td>12.000</td><td>12.000</td><td>12.000</td><td>12.000</td><td>12.000</td><td>12.000</td><td>12.000</td><td>12.000</td><td>12.000</td></tr>
+    <tr><td>Demais custos fixos (composição abaixo)</td><td>0</td><td>0</td><td>11.547</td><td>11.547</td><td>11.547</td><td>11.547</td><td>11.547</td><td>11.547</td><td>11.547</td><td>11.547</td><td>11.547</td><td>11.547</td><td>11.547</td><td>11.547</td><td>11.547</td><td>11.547</td><td>11.547</td><td>11.547</td></tr>
+    <tr><td style="font-weight:600">Despesas totais</td><td>264</td><td>2.912</td><td>44.759</td><td>49.257</td><td>51.067</td><td>50.983</td><td>53.329</td><td>54.317</td><td>55.269</td><td>59.397</td><td>60.806</td><td>60.380</td><td>61.329</td><td>65.458</td><td>78.483</td><td>63.831</td><td>65.413</td><td>64.204</td></tr>
+    <tr class="sep"><td colspan="19">Caixa</td></tr>
+    <tr><td style="font-weight:600">Resultado do período</td><td class="posv">3.776</td><td class="posv">32.438</td><td class="neg">−21.902</td><td class="neg">−7.121</td><td class="neg">−3.147</td><td class="neg">−7.364</td><td class="neg">−7.013</td><td class="neg">−5.572</td><td class="neg">−4.339</td><td class="posv bemonth">3.293</td><td class="posv">4.909</td><td class="neg">−746</td><td class="neg">−599</td><td class="posv">6.360</td><td class="neg">−3.257</td><td class="posv">3.464</td><td class="posv">9.958</td><td class="posv">4.119</td></tr>
+    <tr><td style="font-weight:600">Caixa acumulado (operacional)</td><td class="posv">3.776</td><td class="posv">36.214</td><td class="posv">14.312</td><td class="posv">7.191</td><td class="posv">4.044</td><td class="neg">−3.320</td><td class="neg">−10.332</td><td class="neg">−15.904</td><td class="neg">−20.243</td><td class="neg">−16.950</td><td class="neg">−12.040</td><td class="neg">−12.786</td><td class="neg">−13.385</td><td class="neg">−7.025</td><td class="neg">−10.282</td><td class="neg">−6.818</td><td class="posv">3.139</td><td class="posv">7.259</td></tr>
+    <tr><td>Caixa acumulado incl. investimento (−R$ 198.713)</td><td class="neg">−194.937</td><td class="neg">−162.499</td><td class="neg">−184.401</td><td class="neg">−191.522</td><td class="neg">−194.669</td><td class="neg">−202.033</td><td class="neg">−209.045</td><td class="neg">−214.617</td><td class="neg">−218.956</td><td class="neg">−215.663</td><td class="neg">−210.753</td><td class="neg">−211.499</td><td class="neg">−212.098</td><td class="neg">−205.738</td><td class="neg">−208.995</td><td class="neg">−205.531</td><td class="neg">−195.574</td><td class="neg">−191.454</td></tr>
+    <tr><td style="font-weight:600">Marcos</td><td class="marco"></td><td class="marco"></td><td class="marco"></td><td class="marco"></td><td class="marco"></td><td class="marco"></td><td class="marco"></td><td class="marco"></td><td class="marco"></td><td class="marco bemonth">◆ BREAK-EVEN</td><td class="marco"></td><td class="marco"></td><td class="marco"></td><td class="marco"></td><td class="marco"></td><td class="marco"></td><td class="marco"></td><td class="marco"></td></tr>
+  </table></div>
+<p class="note" style="margin-top:8px"><strong>Moderado:</strong> obras (out+nov) rendem <strong>+R$ 36.214</strong> · <strong class="neg-t">não alcança o break-even de 202 alunos</strong> · caixa operacional chega a <strong class="neg-t">−R$ 20.243</strong> no M7 — precisa desse capital de giro além do investimento · <strong class="neg-t">não paga o investimento em 16 meses</strong> · caixa final incl. investimento: <strong>−R$ 191.454</strong>.</p>
+  </div>
+  <div id="quadro-otim" class="qpane" hidden role="tabpanel" aria-label="Otimista">
+  <div class="tbl-wrap"><table class="tbl-mes">
+    <tr><th>Otimista (R$)</th><th>Out<br>obras</th><th>Nov<br>obras</th><th>Dez<br>M1</th><th>Jan<br>M2</th><th>Fev<br>M3</th><th>Mar<br>M4</th><th>Abr<br>M5</th><th>Mai<br>M6</th><th>Jun<br>M7</th><th>Jul<br>M8</th><th>Ago<br>M9</th><th>Set<br>M10</th><th>Out<br>M11</th><th>Nov<br>M12</th><th>Dez<br>M13</th><th>Jan<br>M14</th><th>Fev<br>M15</th><th>Mar<br>M16</th></tr>
+    <tr><td>Matrículas no período</td><td>5</td><td>40</td><td>15</td><td>35</td><td>30</td><td>20</td><td>20</td><td>20</td><td>20</td><td>40</td><td>40</td><td>20</td><td>20</td><td>40</td><td>30</td><td>40</td><td>40</td><td>20</td></tr>
+    <tr><td style="font-weight:600">Total de alunos (break-even: 202)</td><td>5</td><td>44</td><td>54</td><td>81</td><td>103</td><td>113</td><td>121</td><td>129</td><td>135</td><td>156</td><td>181</td><td>182</td><td>184</td><td class="posv bemonth">206</td><td class="posv">211</td><td class="posv">219</td><td class="posv">237</td><td class="posv">234</td></tr>
+    <tr><td>Professores necessários</td><td>0</td><td>0</td><td>2</td><td>3</td><td>3</td><td>4</td><td>4</td><td>4</td><td>4</td><td>5</td><td>6</td><td>6</td><td>6</td><td>6</td><td>6</td><td>6</td><td>7</td><td>7</td></tr>
+    <tr class="sep"><td colspan="19">Receitas (caixa)</td></tr>
+    <tr><td>Matrícula (R$ 200/novo)</td><td>1.000</td><td>8.000</td><td>3.000</td><td>7.000</td><td>6.000</td><td>4.000</td><td>4.000</td><td>4.000</td><td>4.000</td><td>8.000</td><td>8.000</td><td>4.000</td><td>4.000</td><td>8.000</td><td>6.000</td><td>8.000</td><td>8.000</td><td>4.000</td></tr>
+    <tr><td>Mensalidade recebida (R$ 280, − 10% inadimpl.)</td><td>0</td><td>0</td><td>11.214</td><td>13.648</td><td>20.421</td><td>25.939</td><td>28.385</td><td>30.587</td><td>32.568</td><td>34.025</td><td>39.342</td><td>45.488</td><td>45.979</td><td>46.421</td><td>51.859</td><td>53.196</td><td>55.296</td><td>59.847</td></tr>
+    <tr><td>Material antecipado (R$ 810/novo)</td><td>4.050</td><td>32.400</td><td>12.150</td><td>28.350</td><td>24.300</td><td>16.200</td><td>16.200</td><td>16.200</td><td>16.200</td><td>32.400</td><td>32.400</td><td>16.200</td><td>16.200</td><td>32.400</td><td>24.300</td><td>32.400</td><td>32.400</td><td>16.200</td></tr>
+    <tr><td style="font-weight:600">Receita recebida</td><td>5.050</td><td>40.400</td><td>26.364</td><td>48.998</td><td>50.721</td><td>46.139</td><td>48.585</td><td>50.787</td><td>52.768</td><td>74.425</td><td>79.742</td><td>65.688</td><td>66.179</td><td>86.821</td><td>82.159</td><td>93.596</td><td>95.696</td><td>80.047</td></tr>
+    <tr class="sep"><td colspan="19">Despesas</td></tr>
+    <tr><td>Impostos (Simples progressivo)</td><td>330</td><td>3.541</td><td>2.380</td><td>4.856</td><td>5.339</td><td>4.982</td><td>5.342</td><td>5.667</td><td>5.961</td><td>8.580</td><td>9.378</td><td>7.820</td><td>8.066</td><td>10.855</td><td>10.605</td><td>12.315</td><td>12.823</td><td>10.895</td></tr>
+    <tr><td>Material — parcelas 12x (R$ 31,25/novo/mês)</td><td>0</td><td>0</td><td>1.875</td><td>2.969</td><td>3.906</td><td>4.531</td><td>5.156</td><td>5.781</td><td>6.406</td><td>7.656</td><td>8.906</td><td>9.531</td><td>10.156</td><td>11.406</td><td>10.469</td><td>10.625</td><td>10.938</td><td>10.938</td></tr>
+    <tr><td>Comissão vendedor (R$ 40 + encargos)</td><td>0</td><td>0</td><td>660</td><td>1.540</td><td>1.320</td><td>880</td><td>880</td><td>880</td><td>880</td><td>1.760</td><td>1.760</td><td>880</td><td>880</td><td>1.760</td><td>1.320</td><td>1.760</td><td>1.760</td><td>880</td></tr>
+    <tr><td>Folha + encargos mensais</td><td>0</td><td>0</td><td>13.360</td><td>13.360</td><td>13.360</td><td>13.360</td><td>13.360</td><td>13.360</td><td>13.360</td><td>13.360</td><td>13.360</td><td>13.360</td><td>13.360</td><td>13.360</td><td>13.360</td><td>13.360</td><td>13.360</td><td>13.360</td></tr>
+    <tr><td>Vale-transporte / benefícios</td><td>0</td><td>0</td><td>600</td><td>600</td><td>600</td><td>600</td><td>600</td><td>600</td><td>600</td><td>600</td><td>600</td><td>600</td><td>600</td><td>600</td><td>600</td><td>600</td><td>600</td><td>600</td></tr>
+    <tr><td>13º e férias (desembolso)</td><td>0</td><td>0</td><td>467</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>13.067</td><td>0</td><td>0</td><td>0</td></tr>
+    <tr><td>Professores (salário + encargos, sem comissão)</td><td>0</td><td>0</td><td>2.640</td><td>3.960</td><td>3.960</td><td>5.280</td><td>5.280</td><td>5.280</td><td>5.280</td><td>6.600</td><td>7.920</td><td>7.920</td><td>7.920</td><td>7.920</td><td>7.920</td><td>7.920</td><td>9.240</td><td>9.240</td></tr>
+    <tr><td>Aluguel do espaço</td><td>0</td><td>0</td><td>12.000</td><td>12.000</td><td>12.000</td><td>12.000</td><td>12.000</td><td>12.000</td><td>12.000</td><td>12.000</td><td>12.000</td><td>12.000</td><td>12.000</td><td>12.000</td><td>12.000</td><td>12.000</td><td>12.000</td><td>12.000</td></tr>
+    <tr><td>Demais custos fixos (composição abaixo)</td><td>0</td><td>0</td><td>11.547</td><td>11.547</td><td>11.547</td><td>11.547</td><td>11.547</td><td>11.547</td><td>11.547</td><td>11.547</td><td>11.547</td><td>11.547</td><td>11.547</td><td>11.547</td><td>11.547</td><td>11.547</td><td>11.547</td><td>11.547</td></tr>
+    <tr><td style="font-weight:600">Despesas totais</td><td>330</td><td>3.541</td><td>45.528</td><td>50.832</td><td>52.032</td><td>53.181</td><td>54.165</td><td>55.115</td><td>56.034</td><td>62.104</td><td>65.472</td><td>63.658</td><td>64.529</td><td>69.448</td><td>80.887</td><td>70.127</td><td>72.267</td><td>69.459</td></tr>
+    <tr class="sep"><td colspan="19">Caixa</td></tr>
+    <tr><td style="font-weight:600">Resultado do período</td><td class="posv">4.720</td><td class="posv">36.859</td><td class="neg">−19.164</td><td class="neg">−1.834</td><td class="neg">−1.311</td><td class="neg">−7.042</td><td class="neg">−5.580</td><td class="neg">−4.329</td><td class="neg">−3.266</td><td class="posv bemonth">12.322</td><td class="posv">14.270</td><td class="posv">2.030</td><td class="posv">1.649</td><td class="posv">17.373</td><td class="posv">1.272</td><td class="posv">23.469</td><td class="posv">23.429</td><td class="posv">10.588</td></tr>
+    <tr><td style="font-weight:600">Caixa acumulado (operacional)</td><td class="posv">4.720</td><td class="posv">41.579</td><td class="posv">22.414</td><td class="posv">20.580</td><td class="posv">19.269</td><td class="posv">12.228</td><td class="posv">6.647</td><td class="posv">2.319</td><td class="neg">−948</td><td class="posv">11.374</td><td class="posv">25.645</td><td class="posv">27.674</td><td class="posv">29.324</td><td class="posv">46.697</td><td class="posv">47.969</td><td class="posv">71.438</td><td class="posv">94.867</td><td class="posv">105.454</td></tr>
+    <tr><td>Caixa acumulado incl. investimento (−R$ 198.713)</td><td class="neg">−193.993</td><td class="neg">−157.134</td><td class="neg">−176.299</td><td class="neg">−178.133</td><td class="neg">−179.444</td><td class="neg">−186.485</td><td class="neg">−192.066</td><td class="neg">−196.394</td><td class="neg">−199.661</td><td class="neg">−187.339</td><td class="neg">−173.068</td><td class="neg">−171.039</td><td class="neg">−169.389</td><td class="neg">−152.016</td><td class="neg">−150.744</td><td class="neg">−127.275</td><td class="neg">−103.846</td><td class="neg">−93.259</td></tr>
+    <tr><td style="font-weight:600">Marcos</td><td class="marco"></td><td class="marco"></td><td class="marco"></td><td class="marco"></td><td class="marco"></td><td class="marco"></td><td class="marco"></td><td class="marco"></td><td class="marco"></td><td class="marco bemonth">◆ BREAK-EVEN</td><td class="marco"></td><td class="marco"></td><td class="marco"></td><td class="marco"></td><td class="marco"></td><td class="marco"></td><td class="marco"></td><td class="marco"></td></tr>
+  </table></div>
+<p class="note" style="margin-top:8px"><strong>Otimista:</strong> obras (out+nov) rendem <strong>+R$ 41.579</strong> · cruza o break-even de 202 alunos em <strong>M12</strong> · caixa operacional chega a <strong class="neg-t">−R$ 948</strong> no M7 — precisa desse capital de giro além do investimento · <strong class="neg-t">não paga o investimento em 16 meses</strong> · caixa final incl. investimento: <strong>−R$ 93.259</strong>.</p>
+  </div>
+  <script>
+  document.querySelectorAll('.tabs .tab').forEach(function(b){
+    b.addEventListener('click', function(){
+      document.querySelectorAll('.tabs .tab').forEach(function(x){ x.setAttribute('aria-selected', x === b ? 'true' : 'false'); });
+      document.querySelectorAll('.qpane').forEach(function(p){ p.hidden = (p.id !== 'quadro-' + b.dataset.t); });
+    });
+  });
+  </script>
+
+</section>
+
+<section id="custos">
+  <div class="sec-eyebrow">3 · Composição dos custos</div>
+  <h2 style="margin-bottom:10px">O que está dentro dos custos fixos</h2>
+  <p class="note" style="margin-bottom:4px">Composição dos R$ 23.547/mês de custos fixos (aluguel + demais). Folha (R$ 12.325), professores (R$ 1.500 cada, dimensionados pelos alunos) e os custos variáveis (impostos, material, comissão) são linhas próprias e ficam fora deste bloco. Todos os valores são editáveis na aba Premissas da planilha.</p>
+  <div class="tbl-wrap"><table>
+    <tr><th>Item</th><th>R$/mês</th><th style="text-align:left">Observação</th></tr>
+    <tr><td>Aluguel do espaço</td><td>12.000</td><td style="text-align:left;white-space:normal">atualizado de R$ 10.000 em 25/08 · 1º pagamento em dezembro (M1) — linha própria no quadro acima</td></tr>
+    <tr><td>Custos operacionais</td><td>4.200</td><td style="text-align:left;white-space:normal">detalhados abaixo — estavam na aba de CAPEX da planilha original, fora da projeção mensal</td></tr>
+    <tr class="sub"><td>— Contabilidade</td><td>1.000</td><td></td></tr>
+    <tr class="sub"><td>— Manutenção predial</td><td>800</td><td></td></tr>
+    <tr class="sub"><td>— Taxas de cartão / gateway</td><td>500</td><td></td></tr>
+    <tr class="sub"><td>— Reserva de manutenção / reposição</td><td>500</td><td></td></tr>
+    <tr class="sub"><td>— Manutenção de computadores / rede</td><td>400</td><td></td></tr>
+    <tr class="sub"><td>— Licenças de software (Microsoft / Google)</td><td>400</td><td></td></tr>
+    <tr class="sub"><td>— Material administrativo / papelaria</td><td>300</td><td></td></tr>
+    <tr class="sub"><td>— Dedetização</td><td>150</td><td></td></tr>
+    <tr class="sub"><td>— Contas bancárias / maquininhas</td><td>150</td><td></td></tr>
+    <tr><td>Aluguel dos computadores</td><td>2.720</td><td style="text-align:left;white-space:normal">16 máquinas × R$ 170</td></tr>
+    <tr><td>Luz</td><td>1.000</td><td></td></tr>
+    <tr><td>Taxas bancárias + gasolina</td><td>1.000</td><td style="text-align:left;white-space:normal">estimativa — impostos são calculados à parte (Simples progressivo)</td></tr>
+    <tr><td>Marketing</td><td>750</td><td></td></tr>
+    <tr><td>Itens para aula</td><td>500</td><td></td></tr>
+    <tr><td>Água</td><td>300</td><td></td></tr>
+    <tr><td>Brindes</td><td>300</td><td></td></tr>
+    <tr><td>Materiais de limpeza + higiene</td><td>250</td><td style="text-align:left;white-space:normal">produto apenas — não há auxiliar de limpeza na folha</td></tr>
+    <tr><td>Seguro empresarial</td><td>200</td><td style="text-align:left;white-space:normal">roubo, incêndio etc.</td></tr>
+    <tr><td>Internet</td><td>200</td><td></td></tr>
+    <tr><td>Sistema de gestão DiscoverON</td><td>127</td><td></td></tr>
+    <tr><td>Telefone</td><td>0</td><td></td></tr>
+    <tr><td style="font-weight:600">Total de custos fixos</td><td style="font-weight:600">23.547</td><td style="text-align:left;white-space:normal">+ folha 12.325 + professores (2× R$ 1.500 na abertura → 6× com 200 alunos, a 70% de aproveitamento) → base fixa de R$ 38,9 a 44,9 mil/mês</td></tr>
+  </table></div>
+</section>
+
+<section id="sim-section">
+  <div class="sec-eyebrow">4 · Ferramenta</div>
+  <div class="play-head">
+    <span class="play-badge">🎛️ PLAYGROUND</span>
+    <span class="play-sub">área de testes — nada aqui altera os cenários oficiais acima</span>
+  </div>
+  <h2>Monte e teste seu próprio cenário</h2>
+  <p>Digite as matrículas, monte a equipe, lance os custos (fixos ou <strong>mês a mês</strong>) e salve suas projeções com uma etiqueta. Tudo recalcula a cada tecla — veredito, indicadores, régua de professores e a planilha em tempo real, com o mês do <span class="lg lg-be">◆ BREAK-EVEN</span> e do <span class="lg lg-pb">★ PAYBACK</span> destacados.</p>
+
+  <div class="saves">
+    <div class="saves-row">
+      <input type="text" id="saveName" placeholder="Nome da projeção (ex.: Mensalidade 310 + nov forte)" maxlength="60">
+      <select id="saveTag">
+        <option value="teste">🧪 Teste</option>
+        <option value="provavel">🎯 Provável</option>
+        <option value="real">✅ Próximo do real</option>
+      </select>
+      <button class="tab" id="saveBtn">💾 Salvar projeção</button>
+    </div>
+    <div id="savesList" class="saves-list"></div>
+    <details class="simd bk"><summary>⚙️ Backup / transferir projeções <span class="sum">copie o texto para levar a outro navegador</span></summary>
+      <div class="bk-body">
+        <textarea id="bkText" rows="3" spellcheck="false" placeholder="O JSON das suas projeções aparece aqui ao clicar em Exportar"></textarea>
+        <div class="bk-btns">
+          <button class="tab" id="bkExport">⬇ Exportar</button>
+          <button class="tab" id="bkImport">⬆ Importar do texto</button>
+        </div>
+      </div>
+    </details>
+  </div>
+
+  <div class="sim-presets">
+    <span style="font-size:13px;color:var(--ink-2);margin-right:4px">Começar de:</span>
+    <button class="tab" data-preset="pess">Pessimista</button>
+    <button class="tab" data-preset="mod" aria-selected="true">Moderado</button>
+    <button class="tab" data-preset="otim">Otimista</button>
+    <button class="tab" id="simReset" style="margin-left:auto">↺ Restaurar padrões</button>
+  </div>
+  <p class="note" id="avisoModo" style="margin:6px 0 4px"></p>
+  <div class="sim-months" role="group" aria-label="Matrículas por período"><label class="sim-m obras"><span>Out<br>obras</span><input type="number" min="0" max="99" value="4" data-i="0" inputmode="numeric" aria-label="Matrículas Out"></label><label class="sim-m obras"><span>Nov<br>obras</span><input type="number" min="0" max="99" value="35" data-i="1" inputmode="numeric" aria-label="Matrículas Nov"></label><label class="sim-m"><span>Dez<br>M1</span><input type="number" min="0" max="99" value="13" data-i="2" inputmode="numeric" aria-label="Matrículas Dez M1"></label><label class="sim-m"><span>Jan<br>M2</span><input type="number" min="0" max="99" value="30" data-i="3" inputmode="numeric" aria-label="Matrículas Jan M2"></label><label class="sim-m"><span>Fev<br>M3</span><input type="number" min="0" max="99" value="30" data-i="4" inputmode="numeric" aria-label="Matrículas Fev M3"></label><label class="sim-m"><span>Mar<br>M4</span><input type="number" min="0" max="99" value="20" data-i="5" inputmode="numeric" aria-label="Matrículas Mar M4"></label><label class="sim-m"><span>Abr<br>M5</span><input type="number" min="0" max="99" value="20" data-i="6" inputmode="numeric" aria-label="Matrículas Abr M5"></label><label class="sim-m"><span>Mai<br>M6</span><input type="number" min="0" max="99" value="20" data-i="7" inputmode="numeric" aria-label="Matrículas Mai M6"></label><label class="sim-m"><span>Jun<br>M7</span><input type="number" min="0" max="99" value="20" data-i="8" inputmode="numeric" aria-label="Matrículas Jun M7"></label><label class="sim-m"><span>Jul<br>M8</span><input type="number" min="0" max="99" value="30" data-i="9" inputmode="numeric" aria-label="Matrículas Jul M8"></label><label class="sim-m"><span>Ago<br>M9</span><input type="number" min="0" max="99" value="30" data-i="10" inputmode="numeric" aria-label="Matrículas Ago M9"></label><label class="sim-m"><span>Set<br>M10</span><input type="number" min="0" max="99" value="20" data-i="11" inputmode="numeric" aria-label="Matrículas Set M10"></label><label class="sim-m"><span>Out<br>M11</span><input type="number" min="0" max="99" value="20" data-i="12" inputmode="numeric" aria-label="Matrículas Out M11"></label><label class="sim-m"><span>Nov<br>M12</span><input type="number" min="0" max="99" value="30" data-i="13" inputmode="numeric" aria-label="Matrículas Nov M12"></label><label class="sim-m"><span>Dez<br>M13</span><input type="number" min="0" max="99" value="30" data-i="14" inputmode="numeric" aria-label="Matrículas Dez M13"></label><label class="sim-m"><span>Jan<br>M14</span><input type="number" min="0" max="99" value="20" data-i="15" inputmode="numeric" aria-label="Matrículas Jan M14"></label><label class="sim-m"><span>Fev<br>M15</span><input type="number" min="0" max="99" value="30" data-i="16" inputmode="numeric" aria-label="Matrículas Fev M15"></label><label class="sim-m"><span>Mar<br>M16</span><input type="number" min="0" max="99" value="20" data-i="17" inputmode="numeric" aria-label="Matrículas Mar M16"></label></div>
+  <div class="sim-controls">
+    <div class="sim-ctrl">Mensalidade: <b id="simVmens">R$ 280</b><input type="range" id="simMens" min="200" max="400" step="10" value="280"></div>
+    <div class="sim-ctrl">Churn mensal: <b id="simVchurn">10,0%</b><input type="range" id="simChurn" min="2" max="15" step="0.5" value="10"></div>
+    <div class="sim-ctrl">Inadimplência: <b id="simVinad">10%</b><input type="range" id="simInad" min="0" max="20" step="1" value="10"></div>
+  </div>
+
+  <details class="simd" open><summary>👥 Funcionários e salários <span id="sumFolha" class="sum"></span></summary>
+    <div class="staff-wrap">
+      <table class="staff" id="staffTable" aria-label="Funcionários"></table>
+      <button class="tab" id="staffAdd" style="margin:10px 0 4px">+ adicionar funcionário ou professor fixo</button>
+      <p class="note" style="margin:6px 0 8px">CLT recebe os encargos do campo abaixo; "sem encargos" entra pelo valor cheio (estagiário, PJ, pró-labore). <strong>A comissão é exclusiva do vendedor — professores recebem apenas salário + encargos.</strong> Em <em>Entra em</em> você define a partir de que mês cada um passa a custar: dá para contratar já em <strong>out/nov (obras)</strong> — o vendedor para tocar a pré-venda, por exemplo — ou adiar alguém para depois da abertura. A comissão por matrícula segue contando só a partir de dez (M1).</p>
+      <div class="sim-grid" style="padding:0 0 6px"><label class="sim-g"><span>Comissão do vendedor por matrícula (R$)</span><input type="number" min="0" id="eCom" value="40" class="sim-p"></label><label class="sim-g"><span>Encargos mensais sobre CLT (%)</span><input type="number" min="0" id="eEnc" value="10" class="sim-p"></label><label class="sim-g"><span>Vale-transporte por CLT (R$/mês)</span><input type="number" min="0" id="eVT" value="200" class="sim-p"></label></div>
+    </div>
+  </details>
+
+  <details class="simd" open><summary>🧮 Professores automáticos — salário + encargos, sem comissão <span id="sumProf" class="sum"></span></summary>
+    <div class="sim-grid"><label class="sim-g"><span>Professor CLT — salário base (R$)</span><input type="number" min="0" id="eProf" value="1200" class="sim-p"></label><label class="sim-g"><span>Carga do professor (h-aula/sem)</span><input type="number" min="0" id="eCarga" value="20" class="sim-p"></label><label class="sim-g"><span>Aproveitamento da grade (%)</span><input type="number" min="0" id="eCoef" value="70" class="sim-p"></label></div>
+    <div class="ladder-wrap">
+      <div style="font-weight:600;font-size:13.5px;margin:2px 0 6px">📐 Régua de professores — o custo se ajusta sozinho conforme as matrículas</div>
+      <div class="tbl-wrap" style="margin:0"><table id="ladderTable"></table></div>
+    </div>
+  </details>
+
+    <details class="simd" open><summary>🎯 Canais de aquisição <span id="sumCanais" class="sum"></span></summary>
+    <div class="cost-wrap">
+      <p class="note" style="margin:2px 0 10px"><strong>Estas quantidades alimentam o cenário:</strong> mexeu aqui, muda o total de alunos, a receita e o caixa. Lance quantos alunos vêm de cada canal em cada mês e o CAC de cada um. Canais orgânicos (passantes, indicação) podem ter CAC 0; o tráfego pago é onde o dinheiro sai. O custo entra como <strong>Aquisição de alunos</strong> na planilha.</p>
+      <label class="sim-g" style="max-width:340px"><span>Origem das matrículas</span>
+        <select id="origem" class="sim-p">
+          <option value="canais" selected>Somar os canais abaixo (as quantidades mandam)</option>
+          <option value="manual">Digito o total nas matrículas lá em cima</option>
+        </select></label>
+      <div class="tbl-wrap" style="margin:10px 0 0"><table class="tbl-mes" id="canaisTable"></table></div>
+      <button class="tab" id="canalAdd" style="margin:10px 0 4px">+ adicionar canal</button>
+      <h4 style="margin:16px 0 4px;font-family:'Bricolage Grotesque','Archivo',sans-serif;font-size:15px">📈 Retorno por canal no horizonte</h4>
+      <div class="tbl-wrap" style="margin:0"><table id="canalResumo"></table></div>
+    </div>
+  </details>
+<details class="simd" open><summary>🏢 Custos <span id="sumFixos" class="sum"></span></summary>
+    <div class="cost-wrap">
+      <p class="note" style="margin:2px 0 10px">Valor fixo em todos os meses de operação, ou clique em <strong>📅 mês a mês</strong> para lançar valor por período (ex.: pró-labore só de fev em diante, marketing mais alto na abertura). Custos mês a mês também valem para out/nov, os meses de obras.</p>
+      <table class="costs" id="costTable"></table>
+    </div>
+    <div id="monthlyWrap" class="monthly-wrap" hidden>
+      <div class="mw-head">📅 Lançamento mês a mês <span class="note">digite por período · <strong>↦</strong> repete o valor do 1º mês preenchido para a direita · <strong>0</strong> zera o mês</span></div>
+      <div class="tbl-wrap" style="margin:6px 0 0"><table class="tbl-mes" id="monthlyTable"></table></div>
+    </div>
+  </details>
+
+  <div class="verdict ok" id="simVerdict" role="status">—</div>
+  <div class="stats">
+    <div class="stat"><div class="k" id="stAlunos">—</div><div class="l">alunos no fim do horizonte (M16)</div></div>
+    <div class="stat"><div class="k" id="stProfs">—</div><div class="l">professores automáticos no fim</div></div>
+    <div class="stat"><div class="k" id="stAliq">—</div><div class="l">alíquota efetiva do Simples no M16</div></div>
+    <div class="stat"><div class="k" id="stPior">—</div><div class="l">pior caixa operacional</div></div>
+    <div class="stat"><div class="k" id="stGiro">—</div><div class="l">capital de giro necessário</div></div>
+    <div class="stat"><div class="k" id="stNecess">—</div><div class="l">necessidade total de capital (investimento + giro)</div></div>
+    <div class="stat"><div class="k" id="stPayback">—</div><div class="l">payback do investimento</div></div>
+  </div>
+
+  <h3 style="margin-top:26px">Planilha do seu cenário — em tempo real</h3>
+  <p class="note" style="margin-bottom:4px">Qualquer alteração acima recalcula esta planilha na hora — as células alteradas piscam. Na linha "Total de alunos", verde = acima do ponto de equilíbrio (<span id="simVbe2">—</span> alunos). <span class="lg lg-be">◆ BREAK-EVEN</span> marca o mês em que a escola passa a se pagar e <span class="lg lg-pb">★ PAYBACK</span> o mês em que o investimento é devolvido.</p>
+  <div class="tbl-wrap"><table class="tbl-mes" id="simTable"></table></div>
+  <div class="chart-block">
+    <div class="chart-title">Caixa acumulado do seu cenário</div>
+    <div class="legend">
+      <span><i class="sw" style="background:var(--s2)"></i>Operacional</span>
+      <span><i class="sw" style="background:var(--ghost)"></i>Incluindo o investimento (−R$ 198.713)</span>
+    </div>
+    <div class="chart" id="simChart"></div>
+  </div>
+  <div class="chart-block">
+    <div class="chart-title">Alunos × ponto de equilíbrio</div>
+    <div class="chart-sub" id="simBEsub">—</div>
+    <div class="legend">
+      <span><i class="sw" style="background:var(--s3)"></i>Total de alunos</span>
+      <span><i class="sw" style="background:var(--ghost)"></i>Ponto de equilíbrio (<span id="simVbe">—</span> alunos)</span>
+    </div>
+    <div class="chart" id="simChartBE"></div>
+  </div>
+  <p class="note">Constantes: matrícula R$ 200 · material R$ 900 em 12x (~R$ 810 antecipados, custo R$ 375 em 12x) · imposto pelo Simples Nacional Anexo III (alíquota efetiva progressiva por faixa de RBT12) · investimento R$ 198.713 · turmas de inglês até 8 alunos (2h/sem) e informática até 10 (1h/sem), 9h–20h exceto 12h–13h. As projeções salvas ficam neste navegador (use o Backup para levar a outro).</p>
+</section>
+
+<button class="play-fab" id="playFab" aria-label="Ir para o playground">🎛️ Playground</button>
+
+
+
+<section id="implantacao">
+  <div class="sec-eyebrow">5 · Obra e abertura</div>
+  <h2>Custos de implantação — lance, etiquete e veja para onde o dinheiro foi</h2>
+  <p>Cada gasto da obra e da abertura entra aqui com <strong>valor total, parcelamento e etiquetas</strong>. O parcelamento espalha o desembolso pelos meses (ex.: projeto arquitetônico de R$ 8.000 em 4x a partir de set = R$ 2.000/mês até dezembro), e as análises abaixo mostram para onde o dinheiro está indo. Fica salvo neste navegador.</p>
+
+  <div class="imp-bar">
+    <button class="tab" id="impAdd">+ lançar custo</button>
+    <button class="tab" id="impSeed">carregar exemplos</button>
+    <span class="imp-sum" id="impResumo"></span>
+    <button class="tab" id="impExport" style="margin-left:auto">⬇ Exportar</button>
+    <button class="tab" id="impImport">⬆ Importar</button>
+  </div>
+  <textarea id="impText" class="imp-text" rows="2" spellcheck="false" placeholder="O JSON dos lançamentos aparece aqui ao exportar — cole aqui para importar" hidden></textarea>
+
+  <div class="tbl-wrap"><table id="impTable"></table></div>
+
+  <div class="stats" id="impStats">
+    <div class="stat"><div class="k" id="impTotal">—</div><div class="l">total lançado (sem cancelados)</div></div>
+    <div class="stat ok"><div class="k" id="impPago">—</div><div class="l">já pago</div></div>
+    <div class="stat"><div class="k" id="impPrev">—</div><div class="l">ainda previsto</div></div>
+    <div class="stat" id="impOrcBox"><div class="k" id="impOrc">—</div><div class="l" id="impOrcLbl">do CAPEX orçado (R$ 198.713)</div></div>
+  </div>
+
+  <div class="chart-block">
+    <div class="chart-title">Para onde o dinheiro foi — por categoria</div>
+    <div class="chart-sub">Total de cada etiqueta de categoria, sem os cancelados.</div>
+    <div id="impCat" class="bars"></div>
+  </div>
+
+  <div class="chart-block">
+    <div class="chart-title">Desembolso mês a mês (com os parcelamentos)</div>
+    <div class="chart-sub">Cada gasto entra do mês de início até o fim das parcelas.</div>
+    <div id="impFluxo" class="cols"></div>
+  </div>
+
+  <div class="chart-block">
+    <div class="chart-title">Por tipo de gasto</div>
+    <div id="impTipo" class="bars"></div>
+  </div>
+
+  <h3 style="margin-top:26px">Categoria × tipo</h3>
+  <div class="tbl-wrap"><table id="impCross"></table></div>
+</section>
+
+<section id="proximos">
+  <div class="sec-eyebrow">6 · Entregas e próximos passos</div>
+  <h2>A planilha nova</h2>
+  <p>Enviei junto o arquivo <strong>DiscoverON-projecao-corrigida.xlsx</strong> (v2), reconstruído com fórmulas vivas e as regras novas:</p>
+  <ul class="deliv">
+    <li><strong>Premissas</strong> — preços, churn, inadimplência, equipe (com comissão e encargos) e custos fixos em células amarelas; mudou lá, os três cenários recalculam;</li>
+    <li><strong>Cenários Pessimista / Moderado / Otimista</strong> — cada aba com o quadro mês a mês completo, agora com a coluna "Pré (out/nov)" da pré-venda; demais linhas: — receita de caixa (material antecipado a R$ 810), custo do material parcelado em 12x por turma, comissão de R$ 40/matrícula com encargos, professores horistas entrando no mês 2, imposto sobre o faturado, caixa acumulado e caixa incluindo investimento;</li>
+    <li><strong>Investimento (CAPEX)</strong> — subtotais por seção, total correto, caução separada, itens não orçados marcados com "ORÇAR" e capital de giro calculado automaticamente;</li>
+    <li><strong>Resumo</strong> — os três cenários lado a lado com payback e os dois break-evens.</li>
+  </ul>
+  <p>Para voltar ao Google Sheets: <em>Arquivo → Importar → Fazer upload → Criar nova planilha</em>. As fórmulas funcionam direto.</p>
+  <h3 style="margin-top:24px">O que resolver em seguida</h3>
+  <ol class="next">
+    <li><strong>Garantir as ~35 matrículas de novembro ainda em obras</strong> — são elas que bancam a largada (+R$ 33 mil antes do 1º aluguel). Definir quem vende em out/nov sem funcionários contratados (sócios? vendedor antecipado? — se contratar antes, incluir o custo). Se nov vier perto de 20, reservar ~R$ 20–30 mil de fôlego.</li>
+    <li><strong>Decidir a mensalidade</strong> — com o aluguel de R$ 12 mil, R$ 280 não fecha o payback em nenhum cenário exceto o otimista; R$ 310 devolve (M16) e R$ 320+ dá folga (M15). Testar o preço na pré-venda antes de fixar.</li>
+    <li><strong>Tentar carência ou escalonamento do aluguel</strong> — cada R$ 1.000/mês a menos vale ~R$ 15 mil no acumulado; a R$ 10 mil o moderado praticamente empatava.</li>
+    <li><strong>Desenhar a grade para maximizar o aproveitamento</strong> — cada ponto percentual vale ~R$ 750/mês na fase cheia (premissa B31 da planilha e campo "Aproveitamento" do playground).</li>
+    <li><strong>VT e benefícios dos CLT + limpeza</strong> — não estão no modelo; incluir se vendedor/recepção/professores usarem transporte e definir quem faz a limpeza.</li>
+    <li><strong>Atacar o churn de 10%</strong> — é a premissa que define o teto de ~240 alunos. Se a franqueadora tiver dados reais de retenção, usar; cada ponto a menos vale ~R$ 6 mil/mês no regime estável.</li>
+    <li><strong>Orçar os 48 itens zerados do CAPEX</strong> (hidráulica, elétrica, revestimento, pintura, mão de obra) + reserva de imprevistos — sugiro 15% do valor da reforma.</li>
+    <li><strong>Confirmar o regime tributário com o contador</strong> — o modelo usa 6% sobre o faturado (incluindo o material a R$ 900 e a parte que vira inadimplência).</li>
+  </ol>
+</section><details id="apendices" class="apx">
+  <summary><span class="sec-eyebrow" style="margin:0">Apêndices</span> Diagnóstico da planilha original — os 10 erros corrigidos <span class="apx-hint">(clique para abrir)</span></summary>
+<section>
+  <div class="sec-eyebrow">Apêndice A · O que a planilha original contém</div>
+  <h2>Quatro abas, três gerações de modelo</h2>
+  <p>A planilha projeta a abertura de uma escola (inglês + robótica) com mensalidade de R$ 250, matrícula de R$ 200 e material didático de R$ 810 por aluno novo.</p>
+  <div class="tbl-wrap"><table>
+    <tr><th>Aba</th><th>O que é</th><th>Estado</th></tr>
+    <tr><td>Cenário 17 meses (aba do link)</td><td style="text-align:left;white-space:normal">Entrada de 30/15/30… alunos/mês, chega a 413 alunos</td><td style="text-align:left">Base mais consistente, com 4 erros</td></tr>
+    <tr><td>Cenário 17 meses agressivo</td><td style="text-align:left;white-space:normal">Entrada de 40/20… alunos/mês, chega a 508 alunos</td><td style="text-align:left">Mesma estrutura + 1 erro próprio</td></tr>
+    <tr><td>Cenário 12 meses (aba antiga)</td><td style="text-align:left;white-space:normal">Versão anterior do modelo, premissas diferentes</td><td style="text-align:left">Vários erros graves; descartar</td></tr>
+    <tr><td>Gastos pra montar a escola</td><td style="text-align:left;white-space:normal">CAPEX: reforma, móveis/eletrônicos, abertura</td><td style="text-align:left">Total errado e 48 itens sem orçar</td></tr>
+  </table></div>
+</section>
+
+<section>
+  <div class="sec-eyebrow">Apêndice B · Correções feitas na planilha original</div>
+  <h2>Os dez erros, do mais grave ao menor</h2>
+  <div class="cards">
+    <div class="card crit"><span class="tag crit">Crítico</span>
+      <h3>Desistência é um número fixo de 0,1 aluno/mês — churn praticamente zero</h3>
+      <p>Nas três abas de cenário, o "Total de alunos + desistência" subtrai 0,1 aluno por mês, independente do tamanho da base. Com 400 alunos, o modelo assume que menos de 2 desistem em 17 meses. Escolas de idiomas costumam perder 2–5% da base <em>por mês</em> — a receita de mensalidade está fortemente superestimada nos meses finais.</p>
+      <p class="fix">Corrigido: desistência agora é % da base (premissa ajustável, padrão 3% a.m.).</p>
+    </div>
+    <div class="card crit"><span class="tag crit">Crítico</span>
+      <h3>O "Total" do CAPEX não soma tudo: mostra R$ 67.810, mas os itens somam R$ 107.830</h3>
+      <p>A fórmula do total pega a reforma (R$ 17.800), os eletrônicos/móveis (R$ 46.010) e apenas o primeiro item de "Outros custos" (R$ 4.000). As demais linhas de abertura — alvarás, AVCB, fachada, CFTV, acústica etc. (R$ 35.820) — ficam de fora. A caução de R$ 30.000 está listada mas não soma em lugar nenhum. O investimento real declarado é <strong>R$ 198.713</strong>, não R$ 67.810 — o dobro.</p>
+      <p class="fix">Corrigido: subtotais por seção, total geral, caução como linha própria (recuperável) e capital de giro calculado.</p>
+    </div>
+    <div class="card crit"><span class="tag crit">Crítico</span>
+      <h3>Custo do material zerado nos meses 14–17</h3>
+      <p>Nas duas abas de 17 meses, a venda de material continua (R$ 810/aluno novo), mas o custo (R$ 375/aluno novo) para de ser lançado a partir do mês 14 — a fórmula não foi arrastada. Só isso infla o resultado dos 4 últimos meses em R$ 37.500.</p>
+      <p class="fix">Corrigido: custo acompanha a venda em todos os meses.</p>
+    </div>
+    <div class="card crit"><span class="tag crit">Crítico</span>
+      <h3>Impostos como valor fixo escondido em "Outros custos"</h3>
+      <p>Impostos estão dentro de "Outros custos (impostos, taxas bancárias + gasolina) — R$ 3.500" fixos. A receita projetada vai de R$ 30 mil a R$ 120 mil/mês; um imposto que não cresce junto subestima despesa nos meses bons, exatamente onde o modelo "fica bonito".</p>
+      <p class="fix">Corrigido: imposto agora é % da receita bruta (padrão 6% — confirme o anexo do Simples com o contador).</p>
+    </div>
+    <div class="card warn"><span class="tag warn">Alto</span>
+      <h3>Folha não bate com os próprios parâmetros — e não tem encargos</h3>
+      <p>A tabela lança R$ 20.610/mês, mas os parâmetros da própria aba (5 colaboradores × R$ 2.000 + VT R$ 122) dão R$ 10.610. Um dos dois está errado. Além disso, não há FGTS, 13º, férias nem provisão de rescisão.</p>
+      <p class="fix">Corrigido: folha parametrizada (mantive R$ 20.610 — confirmar) + encargos de 25% sobre a folha.</p>
+    </div>
+    <div class="card warn"><span class="tag warn">Alto</span>
+      <h3>Inadimplência não existe no modelo</h3>
+      <p>100% das mensalidades entram no caixa. Em escola particular, 3–8% de inadimplência é o normal.</p>
+      <p class="fix">Corrigido: % de inadimplência sobre a mensalidade (padrão 5%).</p>
+    </div>
+    <div class="card warn"><span class="tag warn">Alto</span>
+      <h3>Aba agressiva: mês 1 com 40 alunos novos, mas total de 30</h3>
+      <p>A célula do total do mês 1 está fixa em 30 (sobrou da outra aba), enquanto a linha de alunos novos diz 40. A mensalidade do mês 2 herda o 30 e cobra R$ 7.500 em vez de R$ 10.000.</p>
+      <p class="fix">Corrigido: total do mês 1 = alunos novos do mês 1.</p>
+    </div>
+    <div class="card warn"><span class="tag warn">Alto</span>
+      <h3>Aba de 12 meses: matrícula cobrada de todos os alunos, todo mês</h3>
+      <p>No mês 2 a receita de matrícula é R$ 15.980 = 79,9 alunos (a base toda) × R$ 200 — como se cada aluno pagasse matrícula mensalmente. Ela também traz salários crescendo 10% <em>ao mês</em> (R$ 12.000 → R$ 31.000 em um ano) e custo de material de R$ 30/aluno (vs R$ 375 nas outras abas). É por isso que essa aba dá lucro desde o mês 1.</p>
+      <p class="fix">Aba substituída pelo Cenário Conservador na planilha nova.</p>
+    </div>
+    <div class="card"><span class="tag info">Médio</span>
+      <h3>48 itens do CAPEX com R$ 0</h3>
+      <p>Hidráulica, elétrica, revestimento, pintura, mão de obra e a reserva de imprevistos estão zerados — ou seja, mesmo os R$ 107.830 são piso, não teto. Na planilha nova esses itens estão marcados com "ORÇAR".</p>
+    </div>
+    <div class="card"><span class="tag info">Médio</span>
+      <h3>R$ 4.200/mês de custos recorrentes fora da projeção</h3>
+      <p>Contabilidade, taxas de cartão, manutenções, licenças de software, papelaria, dedetização e reserva estão listados na aba de CAPEX (seção "Operação"), mas nunca entram nas despesas mensais dos cenários.</p>
+      <p class="fix">Corrigido: movidos para as despesas mensais de todos os cenários.</p>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="sec-eyebrow">Apêndice C · O que a planilha original concluía (com os erros)</div>
+  <h2>O que a planilha atual conclui (com os erros)</h2>
+  <div class="tbl-wrap"><table>
+    <tr><th>Indicador</th><th>17m moderado (link)</th><th>17m agressivo</th><th>12m antigo</th></tr>
+    <tr><td>Pior caixa acumulado</td><td class="neg">−R$ 39.310 (mês 5)</td><td class="neg">−R$ 15.396 (mês 3)</td><td class="posv">nunca negativo</td></tr>
+    <tr><td>Caixa operacional vira positivo</td><td>mês 10</td><td>mês 5</td><td>mês 1</td></tr>
+    <tr><td>Resultado no mês 17 (12)</td><td class="posv">+R$ 71.118</td><td class="posv">+R$ 94.868</td><td class="posv">+R$ 71.411</td></tr>
+    <tr><td>Acumulado final</td><td class="posv">+R$ 391.506</td><td class="posv">+R$ 646.831</td><td class="posv">+R$ 605.928</td></tr>
+  </table></div>
+  <p class="note">Nenhuma dessas contas considera o investimento inicial, e todas carregam os erros da seção 2 — churn zero, sem inadimplência, sem encargos, imposto fixo e custo de material sumindo no fim. É um retrato otimista demais.</p>
+</section>
+
+
+
+</details>
+
+<footer>
+  Fonte: planilha Google Sheets "DiscoverON" (4 abas), lida em 24/08/2026 · Rev. 10 em 30/08/2026: plano de melhorias completo — sazonalidade de férias no churn, 13º e férias como desembolso, VT e auxiliar de limpeza, ocupação de salas, mix de cursos, e CAPEX com estimativas dos itens em aberto + reserva de 15% (investimento passa a R$ 198.713) · Rev. 9: Simples progressivo · Rev. 8: aluguel de R$ 10.000 para R$ 12.000 — sobre a rev. 7 (janela 9h–20h, aproveitamento de grade 70%, professores por capacidade) — sobre as regras da rev. 2 (equipe + 2 professores horistas, material antecipado, churn 10%, inadimplência 10%, mensalidade R$ 280) · Valores dependem das premissas da aba Premissas — ajuste-as e os números recalculam · Análise de planejamento, não é aconselhamento contábil ou tributário.
+</footer>
+</div>
+
+<script>
+(function(){
+  const M = ["Out (obras)","Nov (obras)","Dez M1","Jan M2","Fev M3","Mar M4","Abr M5","Mai M6","Jun M7","Jul M8","Ago M9","Set M10","Out M11","Nov M12","Dez M13","Jan M14","Fev M15","Mar M16"];
+  const fmt = v => (v<0?"−":"") + "R$ " + Math.abs(Math.round(v)).toLocaleString("pt-BR");
+  const css = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+
+  function lineChart(el, series, opts){
+    const W=860,H=340,pl=64,pr=110,pt=14,pb=30;
+    const all=series.flatMap(s=>s.data);
+    let lo=Math.min(0,...all), hi=Math.max(0,...all);
+    const span=hi-lo; lo-=span*0.04; hi+=span*0.06;
+    const x=i=>pl+(W-pl-pr)*i/(M.length-1);
+    const y=v=>pt+(H-pt-pb)*(1-(v-lo)/(hi-lo));
+    const ns="http://www.w3.org/2000/svg";
+    const svg=document.createElementNS(ns,"svg");
+    svg.setAttribute("viewBox",`0 0 ${W} ${H}`);
+    svg.setAttribute("role","img");
+    svg.setAttribute("aria-label",opts.aria);
+    const add=(tag,attrs,parent)=>{const e=document.createElementNS(ns,tag);for(const k in attrs)e.setAttribute(k,attrs[k]);(parent||svg).appendChild(e);return e;};
+    // grid: 4 horizontal lines + zero line
+    const steps=4;
+    for(let g=0; g<=steps; g++){
+      const v=lo+(hi-lo)*g/steps, yy=y(v);
+      add("line",{x1:pl,x2:W-pr,y1:yy,y2:yy,stroke:css("--line"),"stroke-width":1});
+      const t=add("text",{x:pl-8,y:yy+4,"text-anchor":"end","font-size":11,fill:css("--ink-3"),"font-family":"Archivo, sans-serif"});
+      t.textContent=(opts.yFmt||function(u){return (u<0?"−":"")+Math.abs(Math.round(u/1000))+" mil";})(v);
+    }
+    add("line",{x1:pl,x2:W-pr,y1:y(0),y2:y(0),stroke:css("--ink-3"),"stroke-width":1.4,"stroke-dasharray":opts.zeroDash?"":"none"});
+    // x labels (every 2nd)
+    M.forEach((m,i)=>{ if(i%2===0){const t=add("text",{x:x(i),y:H-8,"text-anchor":"middle","font-size":11,fill:css("--ink-3"),"font-family":"Archivo, sans-serif"});t.textContent=m;} });
+    // series
+    series.forEach(s=>{
+      const d=s.data.map((v,i)=>(i?"L":"M")+x(i).toFixed(1)+" "+y(v).toFixed(1)).join(" ");
+      add("path",{d,fill:"none",stroke:css(s.color),"stroke-width":2,"stroke-linejoin":"round","stroke-linecap":"round","stroke-dasharray":s.dash?"5 5":"none"});
+      const last=s.data[s.data.length-1];
+      add("circle",{cx:x(M.length-1),cy:y(last),r:3.5,fill:css(s.color)});
+      const t=add("text",{x:x(M.length-1)+8,y:y(last)+4+(s.labelDy||0),"font-size":12,"font-weight":600,fill:css("--ink-2"),"font-family":"Archivo, sans-serif"});
+      t.textContent=s.name;
+    });
+    // hover layer
+    const cross=add("line",{x1:0,x2:0,y1:pt,y2:H-pb,stroke:css("--ink-3"),"stroke-width":1,"stroke-dasharray":"3 3",opacity:0});
+    const dots=series.map(s=>add("circle",{r:4.5,fill:css(s.color),stroke:css("--surface"),"stroke-width":2,opacity:0}));
+    el.appendChild(svg);
+    const tip=document.createElement("div"); tip.className="tip"; el.appendChild(tip);
+    function move(ev){
+      const r=svg.getBoundingClientRect();
+      const px=(ev.clientX-r.left)*(W/r.width);
+      let i=Math.round((px-pl)/((W-pl-pr)/(M.length-1)));
+      i=Math.max(0,Math.min(M.length-1,i));
+      cross.setAttribute("x1",x(i)); cross.setAttribute("x2",x(i)); cross.setAttribute("opacity",.7);
+      series.forEach((s,k)=>{dots[k].setAttribute("cx",x(i));dots[k].setAttribute("cy",y(s.data[i]));dots[k].setAttribute("opacity",1);});
+      tip.style.display="block";
+      tip.innerHTML="<b>"+M[i]+"</b><br>"+series.map(s=>s.name+": <b>"+(opts.tipFmt||fmt)(s.data[i])+"</b>").join("<br>");
+      const bx=el.getBoundingClientRect();
+      let tx=(ev.clientX-bx.left)+14; if(tx+190>bx.width) tx=(ev.clientX-bx.left)-200;
+      tip.style.left=tx+"px"; tip.style.top=Math.max(0,(ev.clientY-bx.top)-20)+"px";
+    }
+    function leave(){cross.setAttribute("opacity",0);dots.forEach(d=>d.setAttribute("opacity",0));tip.style.display="none";}
+    svg.addEventListener("pointermove",move); svg.addEventListener("pointerleave",leave);
+  }
+
+  window.__lineChart = lineChart;
+  const pess=[1888, 20768, -6718, -23878, -35395, -51569, -66350, -79923, -92457, -100170, -107061, -117893, -128510, -134794, -152086, -159413, -163414, -170085];
+  const mod =[3776, 36214, 14312, 7191, 4044, -3320, -10332, -15904, -20243, -16950, -12040, -12786, -13385, -7025, -10282, -6818, 3139, 7259];
+  const otim=[4720, 41579, 22414, 20580, 19269, 12228, 6647, 2319, -948, 11374, 25645, 27674, 29324, 46697, 47969, 71438, 94867, 105454];
+  const mod8=[3776, 36214, 14330, 7434, 4792, -1799, -7693, -11783, -14264, -8699, -2310, -1183, 511, 10876, 11912, 20174, 35518, 45354];
+
+  function render(){
+    document.getElementById("chart1").innerHTML="";
+    document.getElementById("chart2").innerHTML="";
+    lineChart(document.getElementById("chart1"),[
+      {name:"Pessimista",data:pess,color:"--s1",labelDy:0},
+      {name:"Moderado",data:mod,color:"--s2",labelDy:0},
+      {name:"Otimista",data:otim,color:"--s3",labelDy:0},
+    ],{aria:"Caixa acumulado operacional dos três cenários com pré-venda, da pré-abertura ao mês 17"});
+    lineChart(document.getElementById("chart2"),[
+      {name:"Churn 10%",data:mod,color:"--s2",labelDy:8},
+      {name:"Churn 8%",data:mod8,color:"--s1",dash:true,labelDy:-4},
+    ],{aria:"Comparação do caixa acumulado do cenário moderado com churn de 10% e de 8% ao mês"});
+  }
+  render();
+  if(window.matchMedia){window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change",render);}
+})();
+</script>
+
+<script>
+(function(){
+  const PRESETS = {
+    pess: [2,20,10,20,25,15,15,15,15,20,20,15,15,20,20,15,20,15],
+    mod:  [4,35,13,30,30,20,20,20,20,30,30,20,20,30,30,20,30,20],
+    otim: [5,40,15,35,30,20,20,20,20,40,40,20,20,40,30,40,40,20]
+  };
+  const K = {matr:200, matRec:810, matPreco:900, matCusto:375, invest:198713, PRE:2,
+             capIng:8, hIng:2, capInf:10, hInf:1};
+  // Simples Nacional Anexo III — alíquota efetiva por faixa de RBT12
+  const FAIXAS = [[180000,0.06,0],[360000,0.112,9360],[720000,0.135,17640],
+                  [1800000,0.16,35640],[3600000,0.21,125640],[4800000,0.33,648000]];
+  function aliquota(rbt){
+    if(rbt <= 0) return 0.06;
+    for(const [ate,al,ded] of FAIXAS) if(rbt <= ate) return (rbt*al-ded)/rbt;
+    const [,al,ded] = FAIXAS[FAIXAS.length-1];
+    return (rbt*al-ded)/rbt;
+  }
+  const MN = ["Out<br>obras","Nov<br>obras","Dez<br>M1","Jan<br>M2","Fev<br>M3","Mar<br>M4","Abr<br>M5","Mai<br>M6",
+              "Jun<br>M7","Jul<br>M8","Ago<br>M9","Set<br>M10","Out<br>M11","Nov<br>M12","Dez<br>M13","Jan<br>M14","Fev<br>M15","Mar<br>M16"];
+  const COSTS = [
+    {id:"cAlug",  label:"Aluguel do espaço", base:12000},
+    {id:"cOper",  label:"Custos operacionais (contab., manut., licenças…)", base:4200},
+    {id:"cComp",  label:"Aluguel dos computadores", base:2720},
+    {id:"cLuz",   label:"Luz", base:1000},
+    {id:"cTax",   label:"Taxas bancárias + gasolina", base:1000},
+    {id:"cMkt",   label:"Marketing", base:750},
+    {id:"cItens", label:"Itens para aula", base:500},
+    {id:"cAgua",  label:"Água", base:300},
+    {id:"cBrin",  label:"Brindes", base:300},
+    {id:"cLimp",  label:"Limpeza + higiene", base:250},
+    {id:"cSeg",   label:"Seguro empresarial", base:200},
+    {id:"cNet",   label:"Internet", base:200},
+    {id:"cSis",   label:"Sistema DiscoverON", base:127},
+    {id:"cTel",   label:"Telefone", base:0},
+    {id:"cPro",   label:"Pró-labore (0 = não retirar)", base:0}
+  ];
+  const CANAIS_DEF = [
+    {nome:"Passantes / fachada", cac:0,   split:0.30, modo:"qtd"},
+    {nome:"Indicação de aluno",  cac:50,  split:0.20, modo:"qtd"},
+    {nome:"Tráfego pago",        cac:250, split:0.35, modo:"verba"},
+    {nome:"Redes sociais (orgânico)", cac:0, split:0.05, modo:"qtd"},
+    {nome:"Parcerias / escolas", cac:80,  split:0.05, modo:"qtd"},
+    {nome:"Eventos / panfletagem", cac:120, split:0.05, modo:"qtd"}
+  ];
+  // canal por verba: o número lançado é R$; alunos = verba ÷ CAC
+  const alunosDoCanal = (c,j) => c.modo==="verba" ? ((+c.cac||0)>0 ? Math.round((+c.q[j]||0)/(+c.cac)) : 0) : (+c.q[j]||0);
+  const custoDoCanal  = (c,j) => c.modo==="verba" ? (+c.q[j]||0) : (+c.q[j]||0)*(+c.cac||0);
+  const STAFF_DEF = [
+    {name:"Vendedor", sal:2100, clt:true, start:2},
+    {name:"Recepção", sal:2000, clt:true, start:2},
+    {name:"Estagiário", sal:1200, clt:false, start:2},
+    {name:"Administrador", sal:6000, clt:false, start:2},
+    {name:"Auxiliar de limpeza", sal:1500, clt:true, start:2}
+  ];
+  const MESCAL = [10,11,12,1,2,3,4,5,6,7,8,9,10,11,12,1,2,3];
+  const ANOINI = []; for(let i=0;i<MESCAL.length;i++) ANOINI.push(i===0?0:(MESCAL[i]===1?i:ANOINI[i-1]));
+  const SAZON = {1:1.5,2:1.0,3:1.0,4:1.0,5:1.0,6:1.1,7:1.4,8:1.0,9:1.0,10:1.0,11:1.0,12:1.2};
+  const MSEL = ["Out (obras)","Nov (obras)","Dez M1","Jan M2","Fev M3","Mar M4","Abr M5","Mai M6","Jun M7","Jul M8",
+                "Ago M9","Set M10","Out M11","Nov M12","Dez M13","Jan M14","Fev M15","Mar M16"];
+  const TAGS = {teste:{lbl:"🧪 Teste", cls:"tg-teste"}, provavel:{lbl:"🎯 Provável", cls:"tg-prov"}, real:{lbl:"✅ Próximo do real", cls:"tg-real"}};
+  const DEFP = {simMens:280, simChurn:10, simInad:10, eCom:40, eProf:1200, eCarga:20, eCoef:70, eEnc:10, eVT:200};
+  const LSKEY = "discoveron_pg_v1";
+
+  const $ = id => document.getElementById(id);
+  const inputs = [...document.querySelectorAll('.sim-m input')];
+  const fmt = v => (v<0?"−":"") + "R$ " + Math.abs(Math.round(v)).toLocaleString("pt-BR");
+  const fmt0 = v => (v<0?"−":"") + Math.abs(Math.round(v)).toLocaleString("pt-BR");
+  const fmtK = v => (v<0?"−":"") + "R$ " + (Math.abs(v)/1000).toLocaleString("pt-BR",{maximumFractionDigits:1}) + " mil";
+  const mlabel = i => i===0 ? "out" : i===1 ? "nov" : "M"+(i-1);
+  const val = id => Math.max(0, +($(id) ? $(id).value : 0) || 0);
+  const esc = s => String(s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+
+  let staff = STAFF_DEF.map(s => Object.assign({}, s));
+  let monthly = {};        // id do custo -> array com 18 valores
+  let lastResumo = "";
+
+  /* ---------- funcionários ---------- */
+  function renderStaff(){
+    $("staffTable").innerHTML = '<tr><th style="text-align:left">Cargo / nome</th><th>Salário (R$)</th><th>Vínculo</th><th>Entra em</th><th></th></tr>' +
+      staff.map((s,i) => {
+        const st = (s.start === undefined ? 2 : s.start);
+        return `<tr><td style="text-align:left"><input type="text" value="${esc(s.name)}" data-si="${i}" data-f="name"></td>` +
+        `<td><input type="number" min="0" value="${s.sal}" data-si="${i}" data-f="sal"></td>` +
+        `<td><select data-si="${i}" data-f="clt"><option value="1"${s.clt?" selected":""}>CLT (+encargos)</option><option value="0"${s.clt?"":" selected"}>Sem encargos</option></select></td>` +
+        `<td><select data-si="${i}" data-f="start" class="stsel">` +
+          MSEL.map((m,k)=>`<option value="${k}"${k===st?" selected":""}>${m}</option>`).join("") + `</select></td>` +
+        `<td><button class="rm" data-rm="${i}" aria-label="Remover">✕</button></td></tr>`;
+      }).join("");
+  }
+  function syncStaff(){
+    document.querySelectorAll('#staffTable [data-si]').forEach(el => {
+      const s = staff[+el.dataset.si]; if(!s) return;
+      if(el.dataset.f === "name") s.name = el.value;
+      else if(el.dataset.f === "sal") s.sal = Math.max(0, +el.value || 0);
+      else if(el.dataset.f === "clt") s.clt = el.value === "1";
+      else if(el.dataset.f === "start") s.start = Math.max(0, Math.min(MSEL.length-1, +el.value || 0));
+    });
+  }
+  $("staffTable").addEventListener("input", () => { syncStaff(); recompute(); });
+  $("staffTable").addEventListener("change", () => { syncStaff(); recompute(); });
+  $("staffTable").addEventListener("click", e => {
+    const b = e.target.closest("[data-rm]");
+    if(b){ staff.splice(+b.dataset.rm, 1); renderStaff(); recompute(); }
+  });
+  $("staffAdd").addEventListener("click", () => { staff.push({name:"Novo funcionário", sal:1500, clt:true, start:2}); renderStaff(); recompute(); });
+
+  /* ---------- canais de aquisição ---------- */
+  let canais = [];
+  function seedCanais(){
+    const base = PRESETS.mod;
+    canais = CANAIS_DEF.map(c => Object.assign({}, c, {q: base.map(()=>0)}));
+    base.forEach((tot,j) => {
+      const q = canais.map(c => Math.floor(tot*c.split));
+      let resto = tot - q.reduce((a,b)=>a+b,0), i = 0;
+      while(resto > 0){ q[i % q.length]++; resto--; i++; }
+      q.forEach((v,i2) => { const c=canais[i2];
+        c.q[j] = c.modo==="verba" ? v*(+c.cac||0) : v; });
+    });
+  }
+  function espalharNosCanais(base){
+    const somaCanal = canais.map(c => c.q.reduce((a,_,j)=>a+alunosDoCanal(c,j),0));
+    const tot = somaCanal.reduce((a,b)=>a+b,0);
+    const share = tot > 0 ? somaCanal.map(s=>s/tot)
+                          : canais.map((c,i)=> (CANAIS_DEF[i] ? CANAIS_DEF[i].split : 1/canais.length));
+    base.forEach((totalMes,j) => {
+      const q = share.map(s => Math.floor(totalMes*s));
+      let resto = totalMes - q.reduce((a,b)=>a+b,0), i = 0;
+      while(resto > 0 && q.length){ q[i % q.length]++; resto--; i++; }
+      q.forEach((v,i2) => { const c=canais[i2]; if(!c) return;
+        c.q[j] = c.modo==="verba" ? v*(+c.cac||0) : v; });
+    });
+  }
+  function modoCanais(){ const s=$("origem"); return !s || s.value === "canais"; }
+  function refletirModo(){
+    const on = modoCanais();
+    inputs.forEach(el => { el.disabled = on; el.title = on ? "As matrículas vêm dos canais de aquisição" : ""; });
+    const av = $("avisoModo");
+    if(av) av.textContent = on ? "As matrículas vêm dos canais de aquisição (abaixo) — estes campos ficam travados."
+                               : "Você digita o total aqui; os canais entram só como custo.";
+  }
+  function renderCanais(){
+    let html = `<tr><th>Canal</th><th>CAC</th><th>Eu lanço</th>${MN.map(m=>`<th>${m}</th>`).join("")}<th></th></tr>`;
+    canais.forEach((c,i) => {
+      const verba = c.modo==="verba";
+      html += `<tr><td><input type="text" class="cnome" data-i="${i}" value="${esc(c.nome)}"></td>` +
+        `<td><input type="number" min="0" class="ccac" data-i="${i}" value="${c.cac}"></td>` +
+        `<td><select class="cmodo" data-i="${i}"><option value="qtd"${verba?"":" selected"}>alunos</option>` +
+        `<option value="verba"${verba?" selected":""}>verba R$</option></select></td>` +
+        c.q.map((v,j)=>`<td><input type="number" min="0" class="cq${verba?" verba":""}" data-i="${i}" data-j="${j}" value="${v}"` +
+          `${verba?` title="R$ ${v} ÷ CAC = ${alunosDoCanal(c,j)} alunos"`:""}></td>`).join("") +
+        `<td><button class="rm" data-crm="${i}" aria-label="Remover">✕</button></td></tr>`;
+    });
+    html += `<tr id="cnTotQ"><td style="font-weight:600">Total de matrículas</td><td></td><td></td>${MN.map(()=>"<td></td>").join("")}<td></td></tr>`;
+    html += `<tr id="cnTotC"><td style="font-weight:600">Custo de aquisição</td><td></td><td></td>${MN.map(()=>"<td></td>").join("")}<td></td></tr>`;
+    $("canaisTable").innerHTML = html;
+    canaisTotais();
+  }
+  function canaisTotais(){
+    const q = $("cnTotQ"), c = $("cnTotC");
+    if(!q || !c) return;
+    MN.forEach((_,j) => {
+      q.cells[3+j].textContent = canaisQtd(j);
+      q.cells[3+j].className = "posv";
+      c.cells[3+j].textContent = fmt0(canaisCusto(j));
+    });
+    renderCanalResumo();
+  }
+  $("canaisTable").addEventListener("change", e => {
+    if(e.target.classList.contains("cmodo")) $("canaisTable").dispatchEvent(new Event("input"));
+  });
+  $("canaisTable").addEventListener("input", e => {
+    if(!e.target.dataset) return;
+    const el = e.target; const i = +el.dataset.i;
+    if(el.classList.contains("cmodo")){
+      const c=canais[i], novo=el.value, cac=+c.cac||0;
+      if(novo!==c.modo){                       // converte alunos <-> verba pelo CAC
+        c.q = c.q.map(v => novo==="verba" ? (+v||0)*cac : (cac>0 ? Math.round((+v||0)/cac) : 0));
+        c.modo = novo;
+      }
+      renderCanais(); recompute(); return;
+    }
+    if(el.classList.contains("cnome")) canais[i].nome = el.value;
+    else if(el.classList.contains("ccac")) canais[i].cac = Math.max(0, +el.value || 0);
+    else if(el.classList.contains("cq")) canais[i].q[+el.dataset.j] = Math.max(0, +el.value || 0);
+    else return;
+    canaisTotais(); recompute();   // só os totais: redesenhar tudo tiraria o foco do campo
+  });
+  $("canaisTable").addEventListener("click", e => {
+    const b = e.target.closest("[data-crm]");
+    if(b){ canais.splice(+b.dataset.crm, 1); renderCanais(); recompute(); }
+  });
+  $("canalAdd").addEventListener("click", () => {
+    canais.push({nome:"Novo canal", cac:0, q:MN.map(()=>0)});
+    renderCanais(); recompute();
+  });
+  $("origem").addEventListener("change", () => { refletirModo(); renderCanais(); recompute(); });
+  function renderCanalResumo(){
+    const el=$("canalResumo"); if(!el) return;
+    const totAl = MN.reduce((s,_,j)=>s+canaisQtd(j),0);
+    let linhas = canais.map(c => {
+      const al = MN.reduce((s,_,j)=>s+alunosDoCanal(c,j),0);
+      const inv = MN.reduce((s,_,j)=>s+custoDoCanal(c,j),0);
+      return {nome:c.nome, modo:c.modo, al, inv, cac: al>0?inv/al:0, por1k: inv>0?al/(inv/1000):null,
+              share: totAl>0?al/totAl:0};
+    });
+    const pagos = linhas.filter(l=>l.inv>0);
+    const alP = pagos.reduce((s,l)=>s+l.al,0), invP = pagos.reduce((s,l)=>s+l.inv,0);
+    el.innerHTML = '<tr><th style="text-align:left">Canal</th><th>Alunos</th><th>% das matrículas</th>' +
+      '<th>Investido</th><th>CAC realizado</th><th>Alunos por R$ 1.000</th></tr>' +
+      linhas.map(l => `<tr><td style="text-align:left">${esc(l.nome)}${l.modo==="verba"?' <span class="badge-v">verba</span>':''}</td>` +
+        `<td>${l.al}</td><td>${(l.share*100).toFixed(0)}%</td><td>${fmt(l.inv)}</td>` +
+        `<td>${l.al>0?fmt(l.cac):"—"}</td><td>${l.por1k!==null?l.por1k.toFixed(1):"— (orgânico)"}</td></tr>`).join("") +
+      `<tr style="font-weight:600"><td style="text-align:left">Só canais pagos</td><td>${alP}</td>` +
+      `<td>${totAl>0?(alP/totAl*100).toFixed(0):0}%</td><td>${fmt(invP)}</td>` +
+      `<td>${alP>0?fmt(invP/alP):"—"}</td><td>${invP>0?(alP/(invP/1000)).toFixed(1):"—"}</td></tr>`;
+  }
+  const canaisQtd = j => canais.reduce((s,c)=>s+alunosDoCanal(c,j), 0);
+  const canaisCusto = j => canais.reduce((s,c)=>s+custoDoCanal(c,j), 0);
+
+  /* ---------- custos (fixo ou mês a mês) ---------- */
+  function renderCosts(vals){
+    vals = vals || {};
+    $("costTable").innerHTML = '<tr><th style="text-align:left">Custo</th><th>Valor fixo (R$/mês)</th><th>Lançamento</th></tr>' +
+      COSTS.map(c => {
+        const v = (vals[c.id] !== undefined) ? vals[c.id] : (($(c.id) && !arguments.length) ? $(c.id).value : c.base);
+        const on = !!monthly[c.id];
+        return `<tr><td style="text-align:left">${c.label}</td>` +
+          `<td><input type="number" min="0" id="${c.id}" class="sim-p" value="${v}"${on?" disabled":""}></td>` +
+          `<td><button class="mtog${on?" on":""}" data-id="${c.id}">${on?"📅 mês a mês (ativo)":"📅 mês a mês"}</button></td></tr>`;
+      }).join("");
+  }
+  function renderMonthly(){
+    const ativos = COSTS.filter(c => monthly[c.id]);
+    $("monthlyWrap").hidden = ativos.length === 0;
+    if(!ativos.length){ $("monthlyTable").innerHTML = ""; return; }
+    let h = `<tr><th>Custo</th>${MN.map(m=>`<th>${m}</th>`).join("")}<th>↦</th></tr>`;
+    for(const c of ativos){
+      h += `<tr><td>${c.label}</td>` +
+        monthly[c.id].map((v,i)=>`<td><input type="number" min="0" class="mcell" data-id="${c.id}" data-i="${i}" value="${v}"></td>`).join("") +
+        `<td><button class="mfill" data-id="${c.id}" title="Repetir o 1º valor preenchido para a direita">↦</button></td></tr>`;
+    }
+    $("monthlyTable").innerHTML = h;
+  }
+  $("costTable").addEventListener("click", e => {
+    const b = e.target.closest(".mtog"); if(!b) return;
+    const id = b.dataset.id;
+    if(monthly[id]) delete monthly[id];
+    else { const base = val(id); monthly[id] = MN.map((_,i) => i < K.PRE ? 0 : base); }
+    renderCosts(); renderMonthly(); recompute();
+  });
+  $("costTable").addEventListener("input", e => { if(e.target.closest(".sim-p")) recompute(); });
+  $("monthlyTable").addEventListener("input", e => {
+    const el = e.target.closest(".mcell"); if(!el) return;
+    monthly[el.dataset.id][+el.dataset.i] = Math.max(0, +el.value || 0);
+    recompute();
+  });
+  $("monthlyTable").addEventListener("click", e => {
+    const b = e.target.closest(".mfill"); if(!b) return;
+    const arr = monthly[b.dataset.id];
+    const first = arr.findIndex(v => +v > 0);
+    if(first < 0) return;
+    for(let i = first+1; i < arr.length; i++) arr[i] = arr[first];
+    renderMonthly(); recompute();
+  });
+
+  /* ---------- modelo ---------- */
+  function costOf(id, i, p){
+    const arr = p.monthly[id];
+    if(arr) return +arr[i] || 0;
+    return i < K.PRE ? 0 : (p.base[id] || 0);
+  }
+  function fixosMes(i, p){ let t = 0; for(const c of COSTS) if(c.id !== "cAlug") t += costOf(c.id, i, p); return t; }
+  function folhaMes(i, p){   // só entram os funcionários já contratados naquele mês
+    let t = 0;
+    for(const s of staff) if(i >= (s.start === undefined ? K.PRE : s.start)) t += s.sal*(s.clt ? p.enc : 1);
+    return t;
+  }
+  function params(){
+    const enc = 1 + val("eEnc")/100;
+    const base = {}; COSTS.forEach(c => base[c.id] = val(c.id));
+    return { mens: val("simMens"), churn: val("simChurn")/100, inad: val("simInad")/100,
+      enc: enc, com: val("eCom"),
+      vt: val("eVT"),
+      folha: staff.reduce((s,f) => s + f.sal*(f.clt?enc:1), 0),
+      salProf: val("eProf"), carga: Math.max(1, val("eCarga")),
+      coef: Math.min(1, Math.max(5, val("eCoef") || 70)/100),
+      base: base, monthly: monthly };
+  }
+  function profsNeeded(total,p){
+    if(total<=0) return 0;
+    const ef = p.carga*p.coef;
+    return Math.ceil(Math.ceil(total/K.capIng)*K.hIng/ef) + Math.ceil(Math.ceil(total/K.capInf)*K.hInf/ef);
+  }
+  function model(novos,p){
+    const porCanal = $("origem") && $("origem").value === "canais";
+    let tp=0, acc=0; const fats=[];
+    const r = {total:[],profq:[],matr:[],mens:[],mat:[],rec:[],imp:[],cmat:[],com:[],folha:[],vt:[],enc13:[],prof:[],aquis:[],novos:[],cac:[],alug:[],fixos:[],desp:[],liq:[],acc:[],acci:[],aliq:[]};
+    for(let t=0;t<novos.length;t++){
+      const nv = porCanal ? canaisQtd(t) : novos[t];
+      const obras = t<K.PRE;
+      const total = t===0? nv : tp - tp*p.churn*(SAZON[MESCAL[t]]||1) + nv;
+      const mens = obras?0: tp*p.mens*(1-p.inad);
+      const fatMens = obras?0: tp*p.mens;
+      const matr = nv*K.matr, mat = nv*K.matRec;
+      const rec = matr + mens + mat;
+      const fat = nv*K.matr + fatMens + nv*K.matPreco;
+      fats.push(fat);
+      const meses = t+1;
+      const rbt = meses < 12 ? fats.reduce((a,b)=>a+b,0)/meses*12 : fats.slice(-12).reduce((a,b)=>a+b,0);
+      const al = aliquota(rbt);
+      const imp = fat*al;
+      let cmat=0, com=0, profq=0, prof=0;
+      const folha = folhaMes(t, p);
+      const vt = staff.reduce((s,f) => s + ((t >= (f.start===undefined?K.PRE:f.start) && f.clt && f.sal>0) ? p.vt : 0), 0);
+      let e13 = 0;
+      if(MESCAL[t] === 12) e13 += staff.reduce((s,f) => { const st=f.start===undefined?K.PRE:f.start;
+        return s + (st<=t && f.clt ? f.sal*(t-Math.max(st,ANOINI[t])+1)/12 : 0); }, 0);
+      if(t >= 12) e13 += staff.reduce((s,f) => s + (((f.start===undefined?K.PRE:f.start)===t-12 && f.clt) ? f.sal*4/3 : 0), 0);
+      if(!obras){
+        let w=0; for(let j=Math.max(K.PRE,t-11); j<=t; j++) w+=novos[j];
+        if(t<=K.PRE+11) w+=novos[0]+novos[1];
+        cmat = w*K.matCusto/12;
+        com = nv*p.com*p.enc;
+        profq = profsNeeded(total,p);
+        prof = profq*p.salProf*p.enc;
+      }
+      const alug = costOf("cAlug", t, p);
+      const fixosRest = fixosMes(t, p);
+      const aquis = canaisCusto(t);
+      const desp = imp+cmat+com+folha+vt+e13+prof+aquis+alug+fixosRest;
+      const liq = rec-desp; acc+=liq;
+      r.total.push(total); r.profq.push(profq); r.matr.push(matr); r.mens.push(mens); r.mat.push(mat);
+      r.rec.push(rec); r.imp.push(imp); r.cmat.push(cmat); r.com.push(com); r.folha.push(folha);
+      r.prof.push(prof); r.vt.push(vt); r.enc13.push(e13); r.aquis.push(aquis); r.novos.push(nv);
+      r.cac.push(nv>0 ? (aquis+(t<K.PRE?0:0))/nv : 0);
+      r.alug.push(alug); r.fixos.push(fixosRest); r.desp.push(desp);
+      r.liq.push(liq); r.acc.push(acc); r.acci.push(acc-K.invest); r.aliq.push(al);
+      tp=total;
+    }
+    return r;
+  }
+  function ladder(p, current){
+    const rows=[]; let prev=null, start=1;
+    for(let n=1;n<=360;n++){
+      const q = profsNeeded(n,p);
+      if(prev===null){ prev=q; start=1; }
+      else if(q!==prev){ rows.push({from:start,to:n-1,q:prev}); start=n; prev=q; }
+    }
+    rows.push({from:start,to:360,q:prev});
+    const cur = Math.round(current);
+    $("ladderTable").innerHTML = '<tr><th style="text-align:left">Faixa de alunos</th><th>Professores</th><th>Custo/mês</th></tr>' +
+      rows.map(r => `<tr${cur>=r.from&&cur<=r.to?' class="cur"':''}><td style="text-align:left">${r.from===1?"até "+r.to:r.from+" – "+(r.to===360?"360+":r.to)} alunos${cur>=r.from&&cur<=r.to?" ← seu cenário ("+cur+")":""}</td><td>${r.q}</td><td>${fmt(r.q*p.salProf*p.enc)}</td></tr>`).join("");
+  }
+  let lastCells = null;
+  function renderTable(novos, m, be, beMonth, pbMonth){
+    const rowsData = [
+      {lbl:"Matrículas no período", arr:m.novos, kind:"plain"},
+      {lbl:"CAC realizado (aquisição ÷ matrículas)", arr:m.cac},
+      {lbl:"Total de alunos", arr:m.total.map(v=>Math.round(v)), kind:"be", mark:[m.total.findIndex((v,i)=>i>=K.PRE&&Math.round(v)>=be),"bemonth"]},
+      {lbl:"Professores automáticos", arr:m.profq, kind:"plain"},
+      {lbl:"Alíquota efetiva do Simples (%)", arr:m.aliq.map(a=>Math.round(a*1000)/10), kind:"plain"},
+      {sep:"Receitas (caixa)"},
+      {lbl:"Matrícula (R$ 200/novo)", arr:m.matr},
+      {lbl:"Mensalidade recebida", arr:m.mens},
+      {lbl:"Material antecipado (R$ 810/novo)", arr:m.mat},
+      {lbl:"Receita recebida", arr:m.rec, bold:true},
+      {sep:"Despesas"},
+      {lbl:"Impostos (Simples progressivo)", arr:m.imp},
+      {lbl:"Material — parcelas 12x", arr:m.cmat},
+      {lbl:"Comissão do vendedor", arr:m.com},
+      {lbl:"Aquisição de alunos (canais)", arr:m.aquis},
+      {lbl:"Folha + encargos mensais", arr:m.folha},
+      {lbl:"Vale-transporte / benefícios", arr:m.vt},
+      {lbl:"13º e férias (desembolso)", arr:m.enc13},
+      {lbl:"Professores (salário + encargos, sem comissão)", arr:m.prof},
+      {lbl:"Aluguel do espaço", arr:m.alug},
+      {lbl:"Demais custos", arr:m.fixos},
+      {lbl:"Despesas totais", arr:m.desp, bold:true},
+      {sep:"Caixa"},
+      {lbl:"Resultado do período", arr:m.liq, kind:"pos", bold:true, mark:[beMonth,"bemonth"]},
+      {lbl:"Caixa acumulado (operacional)", arr:m.acc, kind:"pos", bold:true},
+      {lbl:"Caixa incl. investimento (−R$ 198.713)", arr:m.acci, kind:"pos", mark:[pbMonth,"pbmonth"]}
+    ];
+    const cells = [];
+    let htmlRows = `<tr><th>Seu cenário (R$)</th>${MN.map(x=>`<th>${x}</th>`).join("")}</tr>`;
+    let ri = 0;
+    for(const r of rowsData){
+      if(r.sep){ htmlRows += `<tr class="sep"><td colspan="19">${r.sep}</td></tr>`; continue; }
+      const tds = r.arr.map((v,ci) => {
+        const rv = Math.round(v);
+        const changed = lastCells && lastCells[ri] && lastCells[ri][ci] !== rv;
+        cells[ri] = cells[ri] || []; cells[ri][ci] = rv;
+        let cls = [];
+        if(changed) cls.push("chg");
+        if(r.kind === "be"){ if(rv >= be) cls.push("posv"); }
+        else if(r.kind === "pos"){ cls.push(v < 0 ? "neg" : "posv"); }
+        else if(r.kind !== "plain" && v < 0){ cls.push("neg"); }
+        if(r.mark && r.mark[0] >= 0 && ci === r.mark[0]) cls.push(r.mark[1]);
+        return `<td${cls.length?` class="${cls.join(" ")}"`:""}>${fmt0(v)}</td>`;
+      }).join("");
+      htmlRows += `<tr><td${r.bold?' style="font-weight:600"':''}>${r.lbl}</td>${tds}</tr>`;
+      ri++;
+    }
+    let marcos = "";
+    for(let ci=0; ci<MN.length; ci++){
+      const isBE = ci === beMonth, isPB = ci === pbMonth;
+      const txt = isBE && isPB ? "◆★ BE + PAYBACK" : isBE ? "◆ BREAK-EVEN" : isPB ? "★ PAYBACK" : "";
+      const cl = isBE ? "marco bemonth" : isPB ? "marco pbmonth" : "marco";
+      marcos += `<td class="${cl}">${txt}</td>`;
+    }
+    htmlRows += `<tr><td style="font-weight:600">Marcos</td>${marcos}</tr>`;
+    $("simTable").innerHTML = htmlRows;
+    lastCells = cells;
+  }
+
+  /* ---------- projeções salvas ---------- */
+  function loadSaves(){ try { return JSON.parse(localStorage.getItem(LSKEY) || "[]"); } catch(e){ return []; } }
+  function persist(list){ try { localStorage.setItem(LSKEY, JSON.stringify(list)); return true; } catch(e){ alert("Não foi possível salvar neste navegador (armazenamento bloqueado). Use o Backup para copiar o texto."); return false; } }
+  function snapshot(){
+    const base = {}; COSTS.forEach(c => base[c.id] = val(c.id));
+    return { novos: inputs.map(el => +el.value || 0),
+      mens: val("simMens"), churn: val("simChurn"), inad: val("simInad"),
+      staff: staff.map(s => ({name:s.name, sal:s.sal, clt:s.clt, start:(s.start===undefined?2:s.start)})),
+      params: {eCom:val("eCom"), eProf:val("eProf"), eCarga:val("eCarga"), eCoef:val("eCoef"), eEnc:val("eEnc")},
+      base: base, monthly: JSON.parse(JSON.stringify(monthly)),
+      canais: JSON.parse(JSON.stringify(canais)), origem: $("origem").value };
+  }
+  function applySnapshot(d){
+    (d.novos||[]).forEach((v,i) => { if(inputs[i]) inputs[i].value = v; });
+    if(d.mens) $("simMens").value = d.mens;
+    if(d.churn) $("simChurn").value = d.churn;
+    if(d.inad !== undefined) $("simInad").value = d.inad;
+    staff = (d.staff||STAFF_DEF).map(s => Object.assign({start:2}, s));   // projeções antigas: entram na abertura
+    monthly = JSON.parse(JSON.stringify(d.monthly || {}));
+    if(d.canais){ canais = JSON.parse(JSON.stringify(d.canais)); } else { seedCanais(); }
+    if(d.origem && $("origem")) $("origem").value = d.origem;
+    renderCanais();
+    renderStaff(); renderCosts(d.base || {}); renderMonthly();
+    Object.entries(d.params||{}).forEach(([k,v]) => { if($(k)) $(k).value = v; });
+    recompute();
+  }
+  function renderSaves(){
+    const list = loadSaves();
+    $("savesList").innerHTML = list.length ? list.map((s,i) => {
+      const t = TAGS[s.tag] || TAGS.teste;
+      return `<div class="save-item"><span class="tg ${t.cls}">${t.lbl}</span>` +
+        `<span class="sv-name">${esc(s.name)}</span>` +
+        `<span class="sv-sum">${esc(s.resumo||"")}</span>` +
+        `<span class="sv-date">${esc(s.date||"")}</span>` +
+        `<button class="tab sv-load" data-i="${i}">Carregar</button>` +
+        `<button class="rm sv-del" data-i="${i}" title="Excluir">✕</button></div>`;
+    }).join("") : '<p class="note" style="margin:6px 0 0">Nenhuma projeção salva ainda — ajuste o cenário e clique em "Salvar projeção". Elas ficam guardadas neste navegador.</p>';
+  }
+  $("saveBtn").addEventListener("click", () => {
+    const name = ($("saveName").value || "").trim() || "Projeção sem nome";
+    const list = loadSaves();
+    list.unshift({name: name, tag: $("saveTag").value, date: new Date().toLocaleDateString("pt-BR"), resumo: lastResumo, data: snapshot()});
+    if(persist(list.slice(0,40))){ $("saveName").value = ""; renderSaves(); }
+  });
+  $("savesList").addEventListener("click", e => {
+    const l = e.target.closest(".sv-load"), d = e.target.closest(".sv-del");
+    const list = loadSaves();
+    if(l){ const s = list[+l.dataset.i]; if(s && s.data){ applySnapshot(s.data); $("sim-section").scrollIntoView({block:"start"}); } }
+    else if(d){ list.splice(+d.dataset.i,1); persist(list); renderSaves(); }
+  });
+  $("bkExport").addEventListener("click", () => { $("bkText").value = JSON.stringify(loadSaves()); $("bkText").select(); });
+  $("bkImport").addEventListener("click", () => {
+    try {
+      const arr = JSON.parse($("bkText").value);
+      if(!Array.isArray(arr)) throw new Error("formato");
+      if(persist(arr.slice(0,40))){ renderSaves(); alert("Projeções importadas: " + arr.length); }
+    } catch(e){ alert("Texto inválido — cole exatamente o JSON gerado pelo Exportar."); }
+  });
+
+  /* ---------- recálculo ---------- */
+  function recompute(){
+    const p = params();
+    $("simVmens").textContent = "R$ " + p.mens;
+    $("simVchurn").textContent = (p.churn*100).toLocaleString("pt-BR",{minimumFractionDigits:1}) + "%";
+    $("simVinad").textContent = Math.round(p.inad*100) + "%";
+    const emObras = staff.filter(s => (s.start === undefined ? K.PRE : s.start) < K.PRE).length;
+    $("sumFolha").textContent = "— " + staff.length + " pessoas · " + fmt(folhaMes(MN.length-1, p)) + "/mês no fim" +
+      (emObras ? " · " + emObras + " já em obras" : "");
+    const nMon = Object.keys(monthly).length;
+    const last = MN.length - 1;
+    let fixFinal = 0; for(const c of COSTS) fixFinal += costOf(c.id, last, p);
+    const folhaFinal = folhaMes(last, p);
+    const totCan = MN.reduce((s,_,j)=>s+canaisQtd(j),0);
+    const custoCan = MN.reduce((s,_,j)=>s+canaisCusto(j),0);
+    $("sumCanais").textContent = "— " + canais.length + " canais · " + totCan + " matrículas · " + fmt(custoCan) +
+      (modoCanais() ? " · alimentando o cenário" : " · só custo (total digitado à mão)");
+    refletirModo();
+    $("sumFixos").textContent = "— " + fmt(fixFinal) + "/mês no fim" + (nMon ? " · " + nMon + " lançado(s) mês a mês" : "");
+    $("sumProf").textContent = "— R$ " + Math.round(p.salProf*p.enc).toLocaleString("pt-BR") + "/professor · " + (p.carga*p.coef).toLocaleString("pt-BR",{maximumFractionDigits:1}) + " h-aula efetivas/sem";
+    const novos = inputs.map(el => Math.max(0, +el.value || 0));
+    const m = model(novos, p);
+    const pior = Math.min(...m.acc);
+    const giro = Math.max(0, -pior);
+    let pb = m.acci.findIndex(v => v >= 0); if(pb < 0) pb = null;
+    const profAluno = (K.hIng/K.capIng + K.hInf/K.capInf) * (p.salProf*p.enc/(p.carga*p.coef));
+    const aliqMadura = m.aliq[m.aliq.length-1];
+    const margem = p.mens*(1-p.inad) - p.mens*aliqMadura - profAluno;
+    const vtFinal = staff.reduce((s,f) => s + (f.clt && f.sal>0 ? p.vt : 0), 0);
+    const be = margem > 0 ? Math.ceil((fixFinal + folhaFinal + vtFinal)/margem) : Infinity;
+    const lastTotal = m.total[m.total.length-1];
+    $("stAlunos").textContent = Math.round(lastTotal);
+    $("stProfs").textContent = m.profq[m.profq.length-1];
+    $("stAliq").textContent = (m.aliq[m.aliq.length-1]*100).toLocaleString("pt-BR",{minimumFractionDigits:1,maximumFractionDigits:1}) + "%";
+    $("stPior").textContent = fmtK(pior);
+    $("stPior").parentElement.className = "stat " + (pior < 0 ? "bad" : "ok");
+    $("stGiro").textContent = giro > 0 ? fmtK(giro) : "R$ 0";
+    $("stGiro").parentElement.className = "stat " + (giro > 0 ? "bad" : "ok");
+    $("stNecess").textContent = fmtK(K.invest + giro);
+    $("stPayback").textContent = pb === null ? "não atinge" : "mês " + (pb-1);
+    $("stPayback").parentElement.className = "stat " + (pb === null ? "bad" : "ok");
+    $("simVbe").textContent = isFinite(be) ? be : "∞";
+    $("simVbe2").textContent = isFinite(be) ? be : "∞";
+    const cross = isFinite(be) ? m.total.findIndex((v,i) => i >= K.PRE && Math.round(v) >= be) : -1;
+    $("simBEsub").textContent = !isFinite(be)
+      ? "Com estas premissas a margem por aluno é negativa — nenhuma quantidade de alunos cobre os custos."
+      : (cross >= 0 ? "A base cruza o ponto de equilíbrio de " + be + " alunos em " + mlabel(cross) + " — dali em diante a operação se paga."
+                    : "A base não alcança o ponto de equilíbrio de " + be + " alunos no horizonte.");
+    const v = $("simVerdict");
+    if(pb === null){ v.className = "verdict bad"; v.textContent = "❌ NÃO SE PAGA no horizonte de 16 meses — o caixa não devolve o investimento de R$ 198,7 mil."; }
+    else if(pb-1 <= 12){ v.className = "verdict ok"; v.textContent = "✅ SAUDÁVEL — o investimento é pago no mês " + (pb-1) + (giro>0 ? ", mas reserve " + fmtK(giro) + " de capital de giro." : " e o caixa operacional nunca fica negativo."); }
+    else { v.className = "verdict warn"; v.textContent = "⚠️ NO LIMITE — payback só no mês " + (pb-1) + (giro>0 ? " e precisa de " + fmtK(giro) + " de capital de giro." : "."); }
+    lastResumo = (pb === null ? "sem payback" : "payback M" + (pb-1)) + " · giro " + (giro>0?fmtK(giro):"R$ 0") + " · " + Math.round(lastTotal) + " alunos";
+    const beMonth = m.liq.findIndex((x,i) => i >= K.PRE && x > 0);
+    const pbMonth = m.acci.findIndex(x => x >= 0);
+    ladder(p, lastTotal);
+    renderTable(novos, m, isFinite(be)?be:Infinity, beMonth, pbMonth);
+    let el = $("simChart"); el.innerHTML = "";
+    window.__lineChart(el, [
+      {name:"Operacional", data:m.acc, color:"--s2", labelDy:-4},
+      {name:"Incl. invest.", data:m.acci, color:"--ghost", dash:true, labelDy:8}
+    ], {aria:"Caixa acumulado do cenário simulado"});
+    el = $("simChartBE"); el.innerHTML = "";
+    if(isFinite(be)){
+      window.__lineChart(el, [
+        {name:"Alunos", data:m.total.map(x=>Math.round(x)), color:"--s3", labelDy:-4},
+        {name:"Equilíbrio", data:m.total.map(()=>be), color:"--ghost", dash:true, labelDy:10}
+      ], {aria:"Total de alunos comparado ao ponto de equilíbrio"});
+    }
+  }
+
+  inputs.forEach(el => el.addEventListener("input", recompute));
+  ["simMens","simChurn","simInad"].forEach(id => $(id).addEventListener("input", recompute));
+  document.querySelectorAll(".sim-presets .tab[data-preset]").forEach(b => b.addEventListener("click", () => {
+    document.querySelectorAll(".sim-presets .tab[data-preset]").forEach(x => x.setAttribute("aria-selected", x===b ? "true" : "false"));
+    PRESETS[b.dataset.preset].forEach((v,i) => inputs[i].value = v);
+    espalharNosCanais(PRESETS[b.dataset.preset]);   // o preset também redistribui entre os canais
+    renderCanais(); recompute();
+  }));
+  $("simReset").addEventListener("click", () => {
+    Object.entries(DEFP).forEach(([id,v]) => { if($(id)) $(id).value = v; });
+    staff = STAFF_DEF.map(s => Object.assign({}, s));
+    monthly = {}; seedCanais(); renderCanais(); if($("origem")) $("origem").value = "canais";
+    renderStaff(); renderCosts({}); renderMonthly();
+    PRESETS.mod.forEach((v,i) => inputs[i].value = v);
+    document.querySelectorAll(".sim-presets .tab[data-preset]").forEach(x => x.setAttribute("aria-selected", x.dataset.preset==="mod" ? "true" : "false"));
+    recompute();
+  });
+
+  const fabs = [...document.querySelectorAll(".play-fab")];
+  const scrollTop = () => window.scrollY || document.documentElement.scrollTop || document.body.scrollTop || 0;
+  fabs.forEach(fab => fab.addEventListener("click", () => {
+    const sec = $("sim-section");
+    const top = sec.getBoundingClientRect().top + scrollTop();
+    try { window.scrollTo({top: top, behavior: "smooth"}); } catch(e){ window.scrollTo(0, top); }
+    setTimeout(() => { if(Math.abs(scrollTop() - top) > 80) sec.scrollIntoView({block:"start"}); }, 500);
+  }));
+  const updateFab = () => {
+    const r = $("sim-section").getBoundingClientRect();
+    const naTela = r.top < innerHeight*0.6 && r.bottom > innerHeight*0.25;
+    fabs.forEach(f => f.classList.toggle("hidden", naTela));
+  };
+  addEventListener("scroll", updateFab, {passive:true});
+  addEventListener("resize", updateFab);
+  if(window.matchMedia){ window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", recompute); }
+
+  seedCanais(); renderCanais(); refletirModo();
+  renderStaff(); renderCosts({}); renderMonthly(); renderSaves(); updateFab(); recompute();
+})();
+</script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<script>
+(function(){
+  const links=[...document.querySelectorAll('.nav-inner a[data-s]')];
+  const secs=links.map(a=>document.getElementById(a.dataset.s)).filter(Boolean);
+  function marca(){
+    const y=(window.scrollY||document.documentElement.scrollTop||0)+90;
+    let atual=secs.length?secs[0].id:null;
+    for(const s of secs){ if(s.getBoundingClientRect().top+window.scrollY<=y) atual=s.id; }
+    links.forEach(a=>a.classList.toggle('on', a.dataset.s===atual));
+  }
+  addEventListener('scroll',marca,{passive:true});
+  addEventListener('resize',marca);
+  addEventListener('hashchange',()=>setTimeout(marca,80));
+  links.forEach(a=>a.addEventListener('click',()=>{
+    links.forEach(x=>x.classList.toggle('on',x===a));   // resposta imediata ao clique
+    setTimeout(marca,400);
+  }));
+  // abre os apêndices ao clicar no link
+  const apx=document.getElementById('apendices');
+  const linkApx=links.find(a=>a.dataset.s==='apendices');
+  if(apx&&linkApx) linkApx.addEventListener('click',()=>{apx.open=true;});
+  marca();
+})();
+</script>
+<script>
+(function(){
+  const $=id=>document.getElementById(id);
+  if(!$("impTable")) return;
+  const LS="discoveron_impl_v1";
+  const MESES=["Set/26","Out/26","Nov/26","Dez/26","Jan/27","Fev/27","Mar/27","Abr/27","Mai/27","Jun/27","Jul/27",
+               "Ago/27","Set/27","Out/27","Nov/27","Dez/27","Jan/28","Fev/28","Mar/28"];
+  const CATS=["Obra","Documentação/Legal","Equipamentos/TI","Mobiliário","Marketing","Material didático",
+              "Instalações","Taxas/Franquia","Aluguel/Caução","Outros"];
+  const TIPOS=["Material","Mão de obra","Serviço","Compra","Licença/Taxa","Consultoria","Software","Outros"];
+  const STATUS=["Pago","Previsto","Cancelado"];
+  const CAPEX=198713;
+  const EXEMPLOS=[
+    {d:"Projeto arquitetônico", cat:"Documentação/Legal", tipo:"Consultoria", v:8000, ini:0, parc:4, st:"Previsto"},
+    {d:"Cimento, areia e argamassa", cat:"Obra", tipo:"Material", v:500, ini:1, parc:1, st:"Pago"},
+    {d:"Pedreiro — reforma dos banheiros", cat:"Obra", tipo:"Mão de obra", v:1000, ini:1, parc:1, st:"Pago"},
+    {d:"Abertura de empresa", cat:"Documentação/Legal", tipo:"Licença/Taxa", v:1000, ini:1, parc:1, st:"Pago"},
+    {d:"Alvará de funcionamento", cat:"Documentação/Legal", tipo:"Licença/Taxa", v:2500, ini:2, parc:1, st:"Previsto"},
+    {d:"Ar-condicionado (3 unidades)", cat:"Equipamentos/TI", tipo:"Compra", v:12000, ini:2, parc:3, st:"Previsto"}
+  ];
+  let itens=[];
+  const brl=v=>(v<0?"−":"")+"R$ "+Math.abs(Math.round(v)).toLocaleString("pt-BR");
+  const esc=s=>String(s==null?"":s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+  const load=()=>{ try{ const a=JSON.parse(localStorage.getItem(LS)||"[]"); return Array.isArray(a)?a:[]; }catch(e){ return []; } };
+  const save=()=>{ try{ localStorage.setItem(LS,JSON.stringify(itens)); }catch(e){} };
+  const ativo=i=>i.st!=="Cancelado";
+  const parcelaDe=i=>{ const p=Math.max(1,+i.parc||1); return (+i.v||0)/p; };
+  const noMes=(i,j)=>{ const ini=+i.ini||0, p=Math.max(1,+i.parc||1); return (j>=ini && j<ini+p) ? parcelaDe(i) : 0; };
+
+  function opts(lista,sel){ return lista.map(v=>`<option${v===sel?" selected":""}>${esc(v)}</option>`).join(""); }
+  function renderTabela(){
+    let html='<tr><th style="text-align:left">Descrição</th><th>Categoria</th><th>Tipo</th><th>Valor total</th>'+
+             '<th>Início</th><th>Parcelas</th><th>Parcela</th><th>Status</th><th></th></tr>';
+    if(!itens.length){
+      html+='<tr><td colspan="9" style="text-align:left;color:var(--ink-3)">Nenhum custo lançado ainda — clique em “+ lançar custo” ou carregue os exemplos.</td></tr>';
+    }
+    itens.forEach((i,k)=>{
+      html+=`<tr><td style="text-align:left"><input type="text" class="i-d" data-k="${k}" value="${esc(i.d)}" placeholder="descrição"></td>`+
+        `<td><select class="i-cat" data-k="${k}">${opts(CATS,i.cat)}</select></td>`+
+        `<td><select class="i-tipo" data-k="${k}">${opts(TIPOS,i.tipo)}</select></td>`+
+        `<td><input type="number" min="0" class="i-v" data-k="${k}" value="${+i.v||0}"></td>`+
+        `<td><select class="i-ini" data-k="${k}">${opts(MESES,MESES[+i.ini||0])}</select></td>`+
+        `<td><input type="number" min="1" max="36" class="i-parc" data-k="${k}" value="${Math.max(1,+i.parc||1)}"></td>`+
+        `<td class="i-calc">${brl(parcelaDe(i))}</td>`+
+        `<td><select class="i-st" data-k="${k}">${opts(STATUS,i.st)}</select></td>`+
+        `<td><button class="rm" data-irm="${k}" aria-label="Remover">✕</button></td></tr>`;
+    });
+    $("impTable").innerHTML=html;
+  }
+  function barras(el,dados,total){
+    const max=Math.max(1,...dados.map(d=>d.v));
+    el.innerHTML = dados.filter(d=>d.v>0).length
+      ? dados.filter(d=>d.v>0).sort((a,b)=>b.v-a.v).map(d=>
+          `<div class="bar-row"><span class="bar-lbl">${esc(d.n)}</span>`+
+          `<span class="bar-track"><span class="bar-fill" style="width:${(d.v/max*100).toFixed(1)}%"></span></span>`+
+          `<span class="bar-val">${brl(d.v)}<small>${total>0?" · "+(d.v/total*100).toFixed(0)+"%":""}</small></span></div>`).join("")
+      : '<p class="note" style="margin:0">Sem lançamentos ainda.</p>';
+  }
+  function colunas(el,vals){
+    const max=Math.max(1,...vals.map(v=>v.v));
+    el.innerHTML = vals.map(v=>
+      `<div class="col-item" title="${esc(v.n)}: ${brl(v.v)}">`+
+      `<span class="col-bar" style="height:${v.v>0?Math.max(3,v.v/max*100):0}%"></span>`+
+      `<span class="col-lbl">${esc(v.n)}</span></div>`).join("");
+  }
+  function calcular(){
+    const ok=itens.filter(ativo);
+    const total=ok.reduce((s,i)=>s+(+i.v||0),0);
+    const pago=itens.filter(i=>i.st==="Pago").reduce((s,i)=>s+(+i.v||0),0);
+    const prev=itens.filter(i=>i.st==="Previsto").reduce((s,i)=>s+(+i.v||0),0);
+    $("impTotal").textContent=brl(total);
+    $("impPago").textContent=brl(pago);
+    $("impPrev").textContent=brl(prev);
+    const dif=total-CAPEX;
+    $("impOrc").textContent=(total/CAPEX*100).toFixed(0)+"%";
+    $("impOrcLbl").textContent = dif>0
+      ? "do CAPEX orçado — estourou "+brl(dif)
+      : "do CAPEX orçado (R$ 198.713) — faltam "+brl(-dif);
+    $("impOrcBox").className="stat "+(dif>0?"bad":"");
+    $("impResumo").textContent=itens.length+" lançamento(s) · "+brl(total)+" lançados";
+    barras($("impCat"), CATS.map(c=>({n:c, v:ok.filter(i=>i.cat===c).reduce((s,i)=>s+(+i.v||0),0)})), total);
+    barras($("impTipo"), TIPOS.map(t=>({n:t, v:ok.filter(i=>i.tipo===t).reduce((s,i)=>s+(+i.v||0),0)})), total);
+    colunas($("impFluxo"), MESES.map((m,j)=>({n:m, v:ok.reduce((s,i)=>s+noMes(i,j),0)})));
+    const catsUsadas=CATS.filter(c=>ok.some(i=>i.cat===c));
+    const tiposUsados=TIPOS.filter(t=>ok.some(i=>i.tipo===t));
+    $("impCross").innerHTML = catsUsadas.length
+      ? '<tr><th style="text-align:left">Categoria \\ Tipo</th>'+tiposUsados.map(t=>`<th>${esc(t)}</th>`).join("")+'<th>Total</th></tr>'+
+        catsUsadas.map(c=>{
+          const lin=tiposUsados.map(t=>ok.filter(i=>i.cat===c&&i.tipo===t).reduce((s,i)=>s+(+i.v||0),0));
+          return `<tr><td style="text-align:left">${esc(c)}</td>`+
+            lin.map(v=>`<td${v>0?' class="posv"':''}>${v>0?brl(v):"—"}</td>`).join("")+
+            `<td style="font-weight:600">${brl(lin.reduce((a,b)=>a+b,0))}</td></tr>`;
+        }).join("")
+      : '<tr><td style="text-align:left;color:var(--ink-3)">Lance custos para ver o cruzamento.</td></tr>';
+    save();
+  }
+  function tudo(){ renderTabela(); calcular(); }
+  $("impTable").addEventListener("input",e=>{
+    const el=e.target, k=+el.dataset.k; if(isNaN(k)||!itens[k]) return;
+    if(el.classList.contains("i-d")) itens[k].d=el.value;
+    else if(el.classList.contains("i-v")) itens[k].v=Math.max(0,+el.value||0);
+    else if(el.classList.contains("i-parc")) itens[k].parc=Math.min(36,Math.max(1,+el.value||1));
+    else return;
+    const tr=el.closest("tr"); if(tr) tr.cells[6].textContent=brl(parcelaDe(itens[k]));
+    calcular();
+  });
+  $("impTable").addEventListener("change",e=>{
+    const el=e.target, k=+el.dataset.k; if(isNaN(k)||!itens[k]) return;
+    if(el.classList.contains("i-cat")) itens[k].cat=el.value;
+    else if(el.classList.contains("i-tipo")) itens[k].tipo=el.value;
+    else if(el.classList.contains("i-ini")) itens[k].ini=MESES.indexOf(el.value);
+    else if(el.classList.contains("i-st")) itens[k].st=el.value;
+    else return;
+    calcular();
+  });
+  $("impTable").addEventListener("click",e=>{
+    const b=e.target.closest("[data-irm]");
+    if(b){ itens.splice(+b.dataset.irm,1); tudo(); }
+  });
+  $("impAdd").addEventListener("click",()=>{
+    itens.push({d:"", cat:"Obra", tipo:"Material", v:0, ini:0, parc:1, st:"Previsto"});
+    tudo();
+    const ult=$("impTable").querySelector("tr:last-child .i-d"); if(ult) ult.focus();
+  });
+  $("impSeed").addEventListener("click",()=>{ itens=EXEMPLOS.map(o=>Object.assign({},o)); tudo(); });
+  $("impExport").addEventListener("click",()=>{ const t=$("impText"); t.hidden=false; t.value=JSON.stringify(itens); t.select(); });
+  $("impImport").addEventListener("click",()=>{
+    const t=$("impText");
+    if(t.hidden){ t.hidden=false; t.focus(); return; }
+    try{ const a=JSON.parse(t.value); if(!Array.isArray(a)) throw 0; itens=a; tudo(); alert("Importados: "+a.length); }
+    catch(e){ alert("Texto inválido — cole o JSON gerado pelo Exportar."); }
+  });
+  itens=load(); tudo();
+})();
+</script>
