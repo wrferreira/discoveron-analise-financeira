@@ -8,7 +8,7 @@ canais de aquisição com CAC e o controle dos custos de implantação.
 
 ```
 site/index.html   página publicada (HTML+CSS+JS, sem build, sem dependência externa)
-site/Dockerfile   nginx:alpine servindo o index.html na porta 80
+Dockerfile        nginx:alpine servindo o site/index.html na porta 80
 planilha/build_xlsx.py                      gerador da planilha (openpyxl)
 planilha/DiscoverON-projecao-corrigida.xlsx planilha gerada
 ```
@@ -21,21 +21,25 @@ para rodar local — não precisa de servidor nem de instalar nada.
 Projeto `discoveron-ponto-tiburcio-511` · ambiente `production` · serviço `analise-financeira`
 → https://analise-financeira-production.up.railway.app
 
-O deploy é feito por upload do diretório `site/` pelo CLI:
+O serviço está conectado a este repositório: **todo push na `main` publica automaticamente.**
+Não é preciso rodar nada — edite o `site/index.html`, commite e faça o push.
 
 ```bash
-cd site
-railway link --project c6100e3f-eb91-4570-a463-2652573e3947 --environment production
-railway service analise-financeira
-railway status          # confira o projeto e o serviço ANTES de subir
-railway up --detach
+git add -A && git commit -m "..." && git push
 ```
 
-> O `Dockerfile` é obrigatório. Sem ele o Railway usa o Caddy na porta 8080,
-> o domínio aponta para a 80 e o site responde 502.
->
-> `railway up` num diretório sem link **cria um projeto novo** em vez de publicar
-> no certo. Sempre rode o `railway link` + `railway service` antes.
+O build usa o `Dockerfile` da raiz (nginx na porta 80). Se ele sumir, o Railway cai no
+Caddy na porta 8080, o domínio aponta para a 80 e o site responde 502.
+
+Para acompanhar ou forçar um deploy:
+
+```bash
+railway link --project c6100e3f-eb91-4570-a463-2652573e3947 --environment production
+railway service link analise-financeira
+railway deployment list      # status dos últimos deploys
+railway logs                 # logs de build e runtime
+railway redeploy             # republica o último deploy
+```
 
 ## Regenerar a planilha
 
