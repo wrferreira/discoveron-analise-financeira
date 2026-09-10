@@ -1,5 +1,8 @@
 # DiscoverON — análise financeira da abertura da escola
 
+[![site](https://img.shields.io/badge/site-analise--financeira-2ea44f)](https://analise-financeira-production.up.railway.app)
+Deploy automático: todo push na `main` republica o site.
+
 Modelagem financeira para a abertura de uma franquia DiscoverON (inglês + robótica):
 cenários pessimista / moderado / otimista, quadro mês a mês, simulador interativo,
 canais de aquisição com CAC e o controle dos custos de implantação.
